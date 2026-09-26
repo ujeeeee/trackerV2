@@ -8,17 +8,19 @@ function goToScreen(index) {
     const screens = document.querySelectorAll('.screen');
     screens.forEach((s, i) => s.classList.toggle('active', i === index));
 
-    document.querySelectorAll('.nav-btn').forEach(b => {
+    document.querySelectorAll('.side-nav-btn').forEach(b => {
         const idx = b.dataset.index;
         b.classList.toggle('active', idx !== undefined && parseInt(idx) === index);
     });
 
-    const nav = document.getElementById('bottomNav');
-    const btn = nav.querySelector(`.nav-btn[data-index="${index}"]`);
+    // Центрируем активную кнопку в боковой навигации
+    const nav = document.getElementById('sideNav');
+    const btn = nav.querySelector(`.side-nav-btn[data-index="${index}"]`);
     if (nav && btn) {
-        const t = btn.offsetLeft - nav.clientWidth / 2 + btn.clientWidth / 2;
-        nav.scrollTo({ left: t, behavior: 'smooth' });
+        const target = btn.offsetTop - nav.clientHeight / 2 + btn.clientHeight / 2;
+        nav.scrollTo({ top: target, behavior: 'smooth' });
     }
+
     window.scrollTo(0, 0);
 
     if (index === 0) loadMain();
@@ -58,3 +60,45 @@ function updateSettingsUI() {
     document.getElementById('settingsAvatar').textContent = (name[0] || '?').toUpperCase();
     updateThemeButtons(getThemeMode());
 }
+
+// ==========================================
+// ===== SIDE NAV: бесконечная кольцевая прокрутка =====
+// ==========================================
+(function initSideNavInfinite() {
+    const nav = document.getElementById('sideNav');
+    if (!nav) return;
+
+    // Дублируем содержимое 3 раза, чтобы можно было крутить бесконечно
+    const original = [...nav.children];
+    nav.innerHTML = '';
+    for (let copy = 0; copy < 3; copy++) {
+        original.forEach(btn => nav.appendChild(btn.cloneNode(true)));
+    }
+
+    // Стартуем в середине (реальная группа)
+    const total = original.length;
+    const setCenter = () => {
+        const first = nav.children[total];
+        if (first) nav.scrollTop = first.offsetTop - 20;
+    };
+    requestAnimationFrame(setCenter);
+
+    // При скролле — если уехали в первую или последнюю копию, тихо прыгаем в середину
+    let ticking = false;
+    nav.addEventListener('scroll', () => {
+        if (ticking) return;
+        ticking = true;
+        requestAnimationFrame(() => {
+            const firstThirdEnd = nav.children[total * 2 - 1];
+            const secondStart = nav.children[total];
+            const secondEnd = nav.children[total * 2 - 1];
+
+            if (nav.scrollTop < secondStart.offsetTop - nav.clientHeight) {
+                nav.scrollTop += nav.children[total].offsetTop - nav.children[0].offsetTop;
+            } else if (nav.scrollTop > nav.children[total * 2].offsetTop - 20) {
+                nav.scrollTop -= nav.children[total].offsetTop - nav.children[0].offsetTop;
+            }
+            ticking = false;
+        });
+    }, { passive: true });
+})();

@@ -19,7 +19,9 @@
     --text: #f5f5f7;
     --text-secondary: #98989f;
     --text-tertiary: #5a5a5f;
-    --accent: #7c3aed;
+    --accent: #e8503d;
+    --accent-rgb: 232, 80, 61;
+    --accent-soft: rgba(232, 80, 61, 0.14);
     --danger: #ff453a;
     --success: #32d74b;
     --warning: #ff9f0a;
@@ -39,7 +41,9 @@
     --text: #1c1c1e;
     --text-secondary: #5a5a5f;
     --text-tertiary: #8e8e93;
-    --accent: #007aff;
+    --accent: #e63b2e;
+    --accent-rgb: 230, 59, 46;
+    --accent-soft: rgba(230, 59, 46, 0.10);
     --danger: #ff3b30;
     --success: #34c759;
     --warning: #ff9f0a;
@@ -109,7 +113,7 @@ body {
    ========================================== */
 .tabs {
     position: fixed;
-    bottom: 82px; left: 10px; right: 10px;
+    bottom: calc(env(safe-area-inset-bottom, 0px) + 16px); left: 10px; right: 68px;
     max-width: 460px; margin: 0 auto;
     z-index: 85;
     display: flex; gap: 4px; padding: 4px;
@@ -136,41 +140,103 @@ body {
 /* ==========================================
    НИЖНЕЕ МЕНЮ
    ========================================== */
-.bottom-nav {
+/* ==========================================
+   SAFE-AREA (не наезжаем на Telegram UI)
+   ========================================== */
+.screen {
+    padding-top: calc(env(safe-area-inset-top, 0px) + 72px);
+    padding-bottom: calc(env(safe-area-inset-bottom, 0px) + 24px);
+    min-height: 100vh;
+}
+body {
+    padding-bottom: 0;
+    padding-left: env(safe-area-inset-left, 0px);
+    padding-right: calc(env(safe-area-inset-right, 0px) + 56px);
+}
+.screen-inner {
+    padding-right: 0;
+}
+
+/* ==========================================
+   ПРАВАЯ НАВИГАЦИЯ (слитая с краем)
+   ========================================== */
+.side-nav {
     position: fixed;
-    bottom: 17px; left: 10px; right: 10px;
+    top: 50%;
+    right: 0;
+    transform: translateY(-50%);
+    z-index: 95;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    padding: 12px 8px 12px 12px;
     background: var(--glass-strong);
-    backdrop-filter: blur(40px) saturate(200%);
-    -webkit-backdrop-filter: blur(40px) saturate(200%);
-    border: 1px solid var(--glass-border);
-    border-radius: 30px;
-    display: flex; gap: 2px; padding: 6px;
-    z-index: 90; max-width: 460px; margin: 0 auto;
-    box-shadow:
-        0 12px 40px rgba(0,0,0,0.4),
-        0 2px 8px rgba(0,0,0,0.15),
-        inset 0 1px 0 var(--glass-highlight);
-    overflow-x: auto; overflow-y: hidden;
-    scrollbar-width: none; -ms-overflow-style: none;
-    scroll-behavior: smooth; -webkit-overflow-scrolling: touch;
+    backdrop-filter: blur(30px) saturate(180%);
+    -webkit-backdrop-filter: blur(30px) saturate(180%);
+    border-top: 1px solid var(--glass-border);
+    border-bottom: 1px solid var(--glass-border);
+    border-left: 1px solid var(--glass-border);
+    border-right: none;
+    border-radius: 26px 0 0 26px;
+    box-shadow: -8px 0 28px rgba(0,0,0,0.3), inset 0 1px 0 var(--glass-highlight);
+    max-height: 72vh;
+    overflow-y: auto;
+    overflow-x: hidden;
+    scrollbar-width: none;
+    -ms-overflow-style: none;
+    scroll-snap-type: y mandatory;
+    -webkit-overflow-scrolling: touch;
+    overscroll-behavior-y: contain;
 }
-.bottom-nav::-webkit-scrollbar { display: none; }
-.nav-btn {
-    background: none; border: none;
-    color: var(--text-tertiary);
-    display: flex; flex-direction: column; align-items: center; justify-content: center;
-    gap: 2px; padding: 6px 10px; cursor: pointer;
-    border-radius: 22px; transition: 0.2s; flex: 0 0 auto;
-    min-width: 62px; font-family: inherit; position: relative;
+.side-nav::-webkit-scrollbar { display: none; }
+
+.side-nav-btn {
+    flex-shrink: 0;
+    scroll-snap-align: center;
+    width: 42px;
+    height: 42px;
+    border-radius: 50%;
+    background: transparent;
+    border: 1.5px solid var(--glass-border);
+    color: var(--text-secondary);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    transition: 0.22s ease;
+    font-family: inherit;
+    padding: 0;
+    position: relative;
 }
-.nav-btn.active { color: var(--accent); }
-.nav-btn.active::before {
-    content: ''; position: absolute; inset: 2px 8%;
-    background: var(--accent); opacity: 0.12;
-    border-radius: 18px; z-index: -1; transition: 0.25s;
+.side-nav-icon {
+    font-size: 17px;
+    line-height: 1;
+    transition: transform 0.2s ease;
 }
-.nav-icon { font-size: 18px; transition: 0.2s; line-height: 1; }
-.nav-label { font-size: 9px; font-weight: 600; white-space: nowrap; letter-spacing: 0.2px; }
+.side-nav-btn:active .side-nav-icon {
+    transform: scale(0.85);
+}
+.side-nav-btn.active {
+    color: var(--accent);
+    border-color: var(--accent);
+    background: var(--accent-soft);
+    box-shadow: 0 0 14px rgba(var(--accent-rgb), 0.45), inset 0 0 0 1px rgba(var(--accent-rgb), 0.2);
+    transform: scale(1.08);
+}
+
+/* Настройки — отдельная кнопка внизу пилла */
+.side-nav-btn.settings {
+    margin-top: 6px;
+    border-color: rgba(var(--accent-rgb), 0.3);
+}
+
+/* Скрываем в светлой теме агрессивные тени */
+:root[data-theme="light"] .side-nav {
+    box-shadow: -6px 0 20px rgba(0,0,0,0.08), inset 0 1px 0 var(--glass-highlight);
+}
+:root[data-theme="light"] .side-nav-btn.active {
+    box-shadow: 0 0 10px rgba(var(--accent-rgb), 0.3), inset 0 0 0 1px rgba(var(--accent-rgb), 0.15);
+}
 
 /* ==========================================
    SETTINGS
@@ -854,7 +920,7 @@ body {
    ========================================== */
 .places-filters {
     position: fixed;
-    bottom: 132px; left: 10px; right: 10px;
+    bottom: calc(env(safe-area-inset-bottom, 0px) + 76px); left: 10px; right: 68px;
     max-width: 460px; margin: 0 auto;
     z-index: 86;
     display: flex; gap: 6px;
@@ -1123,8 +1189,8 @@ textarea.modal-input {
 
 .tab-search-btn {
     position: fixed;
-    bottom: 82px;
-    right: 10px;
+    bottom: calc(env(safe-area-inset-bottom, 0px) + 76px);
+    right: 60px;
     width: 45px;
     height: 45px;
     border-radius: 50%;
