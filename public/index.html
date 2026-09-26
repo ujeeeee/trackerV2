@@ -284,7 +284,47 @@
                     <h2>🍽️ Food</h2>
                     <button class="settings-btn" onclick="openSettings()">⚙️</button>
                 </div>
-                <div class="screen-content"><p class="hint">Скоро.</p></div>
+                <div class="tabs">
+                    <button class="tab active" onclick="switchSubTab('food', 'diary', this)">Дневник</button>
+                    <button class="tab" onclick="switchSubTab('food', 'recipes', this)">Рецепты</button>
+                    <button class="tab" onclick="switchSubTab('food', 'shopping', this)">Покупки</button>
+                </div>
+                <div class="screen-content">
+
+                    <div id="food-diary" class="subtab active">
+                        <div id="foodGoalCard"></div>
+                        <div class="food-day-nav">
+                            <button class="week-nav-btn" onclick="foodDayPrev()">‹</button>
+                            <div class="week-range" id="foodDayLabel"></div>
+                            <button class="week-nav-btn" onclick="foodDayNext()">›</button>
+                        </div>
+                        <div id="foodMealsList"></div>
+                        <button class="food-add-meal" onclick="openMealNameModal()">+ Добавить приём</button>
+                        <div id="foodDayTotals"></div>
+                    </div>
+
+                    <div id="food-recipes" class="subtab">
+                        <div class="food-recipe-actions">
+                            <button class="film-random-btn" onclick="openFoodCategoryModal()">+ Категория</button>
+                            <button class="film-random-btn" onclick="openProductsListModal()">⚙ Продукты</button>
+                        </div>
+                        <div id="foodRecipesList"></div>
+                    </div>
+
+                    <div id="food-shopping" class="subtab">
+                        <div class="food-shopping-controls">
+                            <label class="field-label">С</label>
+                            <input type="date" class="modal-input" id="shopFrom" onchange="loadShopping()" />
+                            <label class="field-label">По</label>
+                            <input type="date" class="modal-input" id="shopTo" onchange="loadShopping()" />
+                            <button class="film-random-btn" onclick="setShoppingDays(7)">7 дн</button>
+                            <button class="film-random-btn" onclick="setShoppingDays(14)">14 дн</button>
+                            <button class="film-random-btn" onclick="setShoppingDays(30)">30 дн</button>
+                        </div>
+                        <div id="foodShoppingList"></div>
+                    </div>
+
+                </div>
             </div>
         </div>
 
@@ -972,6 +1012,208 @@
         <h3 class="modal-title" id="searchTitle">Поиск</h3>
         <input type="text" class="modal-input" id="searchInput" placeholder="Введите название..." oninput="onSearchInput()" />
         <div id="searchResults" class="search-results"></div>
+    </div>
+</div>
+
+<!-- ПРОФИЛЬ / ЦЕЛЬ -->
+<div class="modal-overlay" id="foodGoalModal">
+    <div class="modal-sheet">
+        <div class="modal-handle"></div>
+        <h3 class="modal-title">Профиль и цель</h3>
+        <div class="field-label">Пол</div>
+        <div class="freq-tabs" id="foodGender">
+            <button class="freq-tab" data-v="male" onclick="pickFoodGender('male', this)">Мужской</button>
+            <button class="freq-tab" data-v="female" onclick="pickFoodGender('female', this)">Женский</button>
+        </div>
+        <div class="field-label" style="margin-top:12px;">Возраст</div>
+        <input type="number" class="modal-input" id="foodAge" placeholder="25" />
+        <div class="field-label">Вес (кг)</div>
+        <input type="number" class="modal-input" id="foodWeight" placeholder="70" step="0.1" />
+        <div class="field-label">Рост (см)</div>
+        <input type="number" class="modal-input" id="foodHeight" placeholder="175" />
+        <div class="field-label">Активность</div>
+        <select class="modal-input modal-select" id="foodActivity">
+            <option value="sedentary">Сидячий</option>
+            <option value="light">Лёгкая</option>
+            <option value="medium">Средняя</option>
+            <option value="high">Высокая</option>
+        </select>
+        <div class="field-label">Цель</div>
+        <div class="freq-tabs" id="foodGoalTabs">
+            <button class="freq-tab" data-v="lose" onclick="pickFoodGoal('lose', this)">Похудение</button>
+            <button class="freq-tab" data-v="maintain" onclick="pickFoodGoal('maintain', this)">Поддержание</button>
+            <button class="freq-tab" data-v="gain" onclick="pickFoodGoal('gain', this)">Набор</button>
+        </div>
+        <div class="field-label" style="margin-top:12px;">Отклонение от нормы (%)</div>
+        <input type="number" class="modal-input" id="foodDeficit" placeholder="15" step="1" />
+        <div class="modal-actions">
+            <button class="modal-btn primary" onclick="saveFoodGoal()">Сохранить</button>
+        </div>
+    </div>
+</div>
+
+<!-- КАТЕГОРИЯ -->
+<div class="modal-overlay" id="foodCategoryModal">
+    <div class="modal-sheet">
+        <div class="modal-handle"></div>
+        <h3 class="modal-title" id="foodCategoryTitle">Новая категория</h3>
+        <input type="text" class="modal-input" id="foodCategoryName" placeholder="Название" />
+        <div class="modal-actions">
+            <button class="modal-btn danger" id="foodCategoryDeleteBtn" style="display:none;" onclick="deleteFoodCategoryFromModal()">Удалить</button>
+            <button class="modal-btn primary" onclick="saveFoodCategory()">Сохранить</button>
+        </div>
+    </div>
+</div>
+
+<!-- ПРОДУКТ -->
+<div class="modal-overlay" id="foodProductModal">
+    <div class="modal-sheet">
+        <div class="modal-handle"></div>
+        <h3 class="modal-title" id="foodProductTitle">Новый продукт</h3>
+        <div class="field-label">Название</div>
+        <input type="text" class="modal-input" id="foodProductName" placeholder="Курица" />
+        <div class="field-label">Единица</div>
+        <div class="freq-tabs" id="foodProductUnit">
+            <button class="freq-tab" data-v="г" onclick="pickFoodUnit('г', this)">г</button>
+            <button class="freq-tab" data-v="мл" onclick="pickFoodUnit('мл', this)">мл</button>
+            <button class="freq-tab" data-v="шт" onclick="pickFoodUnit('шт', this)">шт</button>
+        </div>
+        <div class="field-label" style="margin-top:12px;">КБЖУ на 100 г / 100 мл / 1 шт</div>
+        <input type="number" class="modal-input" id="foodProductKcal" placeholder="Ккал" step="0.1" />
+        <input type="number" class="modal-input" id="foodProductProtein" placeholder="Белки, г" step="0.1" />
+        <input type="number" class="modal-input" id="foodProductFat" placeholder="Жиры, г" step="0.1" />
+        <input type="number" class="modal-input" id="foodProductCarbs" placeholder="Углеводы, г" step="0.1" />
+        <div class="field-label">Цена (за 1 единицу)</div>
+        <input type="number" class="modal-input" id="foodProductPrice" placeholder="0" step="0.01" />
+        <div class="modal-actions">
+            <button class="modal-btn danger" id="foodProductDeleteBtn" style="display:none;" onclick="deleteFoodProductFromModal()">Удалить</button>
+            <button class="modal-btn primary" onclick="saveFoodProduct()">Сохранить</button>
+        </div>
+    </div>
+</div>
+
+<!-- СПИСОК ПРОДУКТОВ -->
+<div class="modal-overlay" id="foodProductsListModal">
+    <div class="modal-sheet">
+        <div class="modal-handle"></div>
+        <h3 class="modal-title">База продуктов</h3>
+        <button class="modal-btn primary" style="margin-bottom:12px;" onclick="openFoodProductModal()">+ Новый продукт</button>
+        <div id="foodProductsList"></div>
+    </div>
+</div>
+
+<!-- РЕЦЕПТ -->
+<div class="modal-overlay" id="foodRecipeModal">
+    <div class="modal-sheet">
+        <div class="modal-handle"></div>
+        <h3 class="modal-title" id="foodRecipeTitle">Новый рецепт</h3>
+        <div class="field-label">Название</div>
+        <input type="text" class="modal-input" id="foodRecipeName" placeholder="Овсянка" />
+        <div class="field-label">Категория</div>
+        <select class="modal-input modal-select" id="foodRecipeCategory"></select>
+        <div class="field-label">Количество порций</div>
+        <input type="number" class="modal-input" id="foodRecipePortions" placeholder="1" min="1" />
+        <div class="field-label">Ингредиенты</div>
+        <div id="foodRecipeIngredients"></div>
+        <button class="modal-btn secondary" style="width:100%;margin-bottom:12px;" onclick="openIngredientModal()">+ Ингредиент</button>
+        <div class="field-label">Инструкция</div>
+        <textarea class="modal-input" id="foodRecipeInstructions" rows="4"></textarea>
+        <div class="field-label">Заметки</div>
+        <input type="text" class="modal-input" id="foodRecipeNotes" placeholder="..." />
+        <div class="modal-actions">
+            <button class="modal-btn danger" id="foodRecipeDeleteBtn" style="display:none;" onclick="deleteFoodRecipeFromModal()">Удалить</button>
+            <button class="modal-btn primary" onclick="saveFoodRecipe()">Сохранить</button>
+        </div>
+    </div>
+</div>
+
+<!-- ИНГРЕДИЕНТ РЕЦЕПТА -->
+<div class="modal-overlay" id="foodIngredientModal">
+    <div class="modal-sheet">
+        <div class="modal-handle"></div>
+        <h3 class="modal-title">Ингредиент</h3>
+        <div class="field-label">Продукт</div>
+        <input type="text" class="modal-input" id="foodIngredientSearch" placeholder="Поиск..." oninput="filterIngredientProducts()" />
+        <div id="foodIngredientProducts" class="food-picker-list"></div>
+        <div class="field-label" style="margin-top:12px;">Количество</div>
+        <input type="number" class="modal-input" id="foodIngredientAmount" placeholder="200" step="0.1" />
+        <div class="modal-actions">
+            <button class="modal-btn secondary" onclick="openFoodProductModal()">+ Новый продукт</button>
+            <button class="modal-btn primary" onclick="saveIngredient()">Добавить</button>
+        </div>
+    </div>
+</div>
+
+<!-- ВЫБОР РЕЦЕПТА (для дневника) -->
+<div class="modal-overlay" id="foodRecipePickerModal">
+    <div class="modal-sheet">
+        <div class="modal-handle"></div>
+        <h3 class="modal-title">Выбрать рецепт</h3>
+        <input type="text" class="modal-input" id="foodRecipePickerSearch" placeholder="Поиск..." oninput="filterRecipePicker()" />
+        <div id="foodRecipePickerList" class="food-picker-list"></div>
+        <div class="field-label" style="margin-top:12px;">Порций</div>
+        <input type="number" class="modal-input" id="foodRecipePickerPortions" value="1" step="0.5" min="0.5" />
+        <div class="modal-actions">
+            <button class="modal-btn primary" onclick="confirmRecipePicker()">Добавить</button>
+        </div>
+    </div>
+</div>
+
+<!-- ВЫБОР ПРОДУКТА (для дневника) -->
+<div class="modal-overlay" id="foodProductPickerModal">
+    <div class="modal-sheet">
+        <div class="modal-handle"></div>
+        <h3 class="modal-title">Выбрать продукт</h3>
+        <input type="text" class="modal-input" id="foodProductPickerSearch" placeholder="Поиск..." oninput="filterProductPicker()" />
+        <div id="foodProductPickerList" class="food-picker-list"></div>
+        <div class="field-label" style="margin-top:12px;">Количество (г / мл / шт)</div>
+        <input type="number" class="modal-input" id="foodProductPickerAmount" placeholder="100" step="0.1" />
+        <div class="modal-actions">
+            <button class="modal-btn secondary" onclick="openFoodProductModal()">+ Новый продукт</button>
+            <button class="modal-btn primary" onclick="confirmProductPicker()">Добавить</button>
+        </div>
+    </div>
+</div>
+
+<!-- НАЗВАНИЕ ПРИЁМА -->
+<div class="modal-overlay" id="foodMealNameModal">
+    <div class="modal-sheet">
+        <div class="modal-handle"></div>
+        <h3 class="modal-title">Название приёма</h3>
+        <input type="text" class="modal-input" id="foodMealName" placeholder="Завтрак" />
+        <div class="modal-actions">
+            <button class="modal-btn primary" onclick="saveMealName()">Добавить</button>
+        </div>
+    </div>
+</div>
+
+<!-- ВЫБОР: рецепт / продукт / разовое -->
+<div class="modal-overlay" id="foodAddItemModal">
+    <div class="modal-sheet">
+        <div class="modal-handle"></div>
+        <h3 class="modal-title">Что добавить?</h3>
+        <button class="modal-btn primary" style="width:100%;margin-bottom:8px;" onclick="pickRecipeForDiary()">Из рецептов</button>
+        <button class="modal-btn secondary" style="width:100%;margin-bottom:8px;" onclick="pickProductForDiary()">Продукт из базы</button>
+        <button class="modal-btn secondary" style="width:100%;" onclick="addOneoffToDiary()">Разовое (ввести КБЖУ вручную)</button>
+    </div>
+</div>
+
+<!-- РАЗОВОЕ БЛЮДО -->
+<div class="modal-overlay" id="foodOneoffModal">
+    <div class="modal-sheet">
+        <div class="modal-handle"></div>
+        <h3 class="modal-title">Разовое блюдо</h3>
+        <div class="field-label">Название</div>
+        <input type="text" class="modal-input" id="foodOneoffName" placeholder="Пицца" />
+        <div class="field-label">Ккал</div>
+        <input type="number" class="modal-input" id="foodOneoffKcal" placeholder="0" step="0.1" />
+        <div class="field-label">Белки / Жиры / Углеводы (г)</div>
+        <input type="number" class="modal-input" id="foodOneoffProtein" placeholder="Б" step="0.1" />
+        <input type="number" class="modal-input" id="foodOneoffFat" placeholder="Ж" step="0.1" />
+        <input type="number" class="modal-input" id="foodOneoffCarbs" placeholder="У" step="0.1" />
+        <div class="modal-actions">
+            <button class="modal-btn primary" onclick="saveOneoffToDiary()">Добавить</button>
+        </div>
     </div>
 </div>
 

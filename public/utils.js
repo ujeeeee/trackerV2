@@ -12,6 +12,7 @@ let currentScreenIndex = 0;
 const COLLAPSE_KEYS = [
     'filmGenres', 'filmWatched', 'teaGroups',
     'placesWant', 'placesVisited', 'discAreas', 'wishlistAreas',
+    'foodCategories',
 ];
 
 const collapsed = {};
@@ -98,6 +99,7 @@ function rerenderCurrent() {
     if (i === 4) { renderPlacesWant(); renderPlacesVisited(); }
     if (i === 5) { renderFilmGenres(); renderFilmWatched(); }
     if (i === 6) { renderTea(); renderTeaShops(); }
+    if (i === 7) renderFoodRecipes();
 }
 
 // ==========================================

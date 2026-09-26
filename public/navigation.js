@@ -28,6 +28,7 @@ function goToScreen(index) {
     if (index === 4) loadPlaces();
     if (index === 5) loadFilm();
     if (index === 6) loadTea();
+    if (index === 7) loadFood();
 }
 
 function switchSubTab(parent, tab, btn) {
