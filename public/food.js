@@ -760,7 +760,7 @@ async function loadShopping() {
 function renderShopping(total = 0) {
     const c = document.getElementById('foodShoppingList');
     if (!foodShoppingItems.length) {
-        c.innerHTML = `<div class="empty-state">Нет данных. Заполни план в дневнике на этот период.</div>`;
+        c.innerHTML = `<div class="empty-state">Нет данных. Добавь блюда в дневник на этот период.</div>`;
         return;
     }
     const checked = JSON.parse(localStorage.getItem('food_shopping_checked') || '{}');
@@ -769,16 +769,18 @@ function renderShopping(total = 0) {
         ${foodShoppingItems.map(it => {
             const key = it.product.id;
             const isChecked = checked[key];
-            return `<div class="food-shop-item ${isChecked ? 'checked' : ''}">
-                <div class="food-shop-check ${isChecked ? 'done' : ''}" onclick="toggleShopCheck(${key})">✓</div>
+            const amount = Number(it.amount) % 1 === 0 ? it.amount : Number(it.amount).toFixed(1);
+            const unit = it.product.unit || 'г';
+            const cost = it.cost ? Math.round(it.cost) + 'р' : '';
+            const meta = `${amount}${unit}${cost ? ' ' + cost : ''}`;
+            return `<div class="food-shop-item ${isChecked ? 'checked' : ''}" onclick="toggleShopCheck(${key})">
+                <div class="food-shop-check ${isChecked ? 'done' : ''}">✓</div>
                 <div class="food-shop-name">${escapeHtml(it.product.name)}</div>
-                <div class="food-shop-amount">${it.amount} ${it.product.unit}</div>
-                ${it.cost ? `<div class="food-shop-cost">${it.cost.toFixed(0)} ₽</div>` : ''}
+                <div class="food-shop-meta">${meta}</div>
             </div>`;
         }).join('')}
-        ${total ? `<div class="cash-total" style="margin-top:12px;">Итого: <b>${total.toFixed(0)} ₽</b></div>` : ''}
-    </div>
-    <button class="budget-row-add" onclick="resetShopChecks()">Сбросить галочки</button>`;
+        ${total ? `<div class="cash-total" style="margin-top:12px;">Итого: <b>${Math.round(total)}р</b></div>` : ''}
+    </div>`;
 }
 
 function toggleShopCheck(id) {
