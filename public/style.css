@@ -5,9 +5,7 @@
     --bg: #0b0911;
 --bg: #0a0809;
 --bg-gradient:
-    radial-gradient(ellipse 78% 52% at 50% -5%, rgba(232, 80, 61, 0.28) 0%, rgba(120, 30, 20, 0.12) 48%, transparent 78%),
-    radial-gradient(ellipse 62% 52% at 100% 72%, rgba(220, 60, 45, 0.22) 0%, rgba(100, 25, 15, 0.10) 48%, transparent 78%),
-    radial-gradient(ellipse 52% 46% at 0% 82%, rgba(180, 50, 40, 0.18) 0%, transparent 73%);
+    radial-gradient(ellipse 80% 40% at 50% 0%, rgba(232, 80, 61, 0.10) 0%, transparent 70%);
     --glass: rgba(28, 28, 32, 0.5);
     --glass-strong: rgba(20, 20, 24, 0.65);
     --glass-border: rgba(255, 255, 255, 0.08);
@@ -80,7 +78,7 @@ body {
     width: 100%;
     min-height: 100vh;
     padding: 16px 16px 8px;
-    padding-top: calc(env(safe-area-inset-top, 0px) + 80px);
+    padding-top: calc(env(safe-area-inset-top, 0px) + 90px);
     padding-bottom: calc(env(safe-area-inset-bottom, 0px) + 120px);
 }
 .screen.active { display: flex; flex-direction: column; }
