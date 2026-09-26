@@ -120,7 +120,7 @@ function renderFilmWatched() {
         const header = isOrphan
             ? `<div class="group-header">
                 <span class="group-arrow" onclick="event.stopPropagation(); toggleCollapse('filmWatched', 0); renderFilmWatched();">▶</span>
-                <div class="group-name">Без жанра</div>
+                <div class="group-name">Без жанраопа</div>
                 <div class="group-count">${sorted.length}</div>
             </div>`
             : `<div class="group-header">
