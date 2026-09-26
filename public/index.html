@@ -313,13 +313,17 @@
 
                     <div id="food-shopping" class="subtab">
                         <div class="food-shopping-controls">
-                            <label class="field-label">С</label>
-                            <input type="date" class="modal-input" id="shopFrom" onchange="loadShopping()" />
-                            <label class="field-label">По</label>
-                            <input type="date" class="modal-input" id="shopTo" onchange="loadShopping()" />
-                            <button class="film-random-btn" onclick="setShoppingDays(7)">7 дн</button>
-                            <button class="film-random-btn" onclick="setShoppingDays(14)">14 дн</button>
-                            <button class="film-random-btn" onclick="setShoppingDays(30)">30 дн</button>
+                            <div class="food-shopping-dates">
+                                <span class="field-label">С</span>
+                                <input type="date" class="modal-input" id="shopFrom" onchange="loadShopping()" />
+                                <span class="field-label">По</span>
+                                <input type="date" class="modal-input" id="shopTo" onchange="loadShopping()" />
+                            </div>
+                            <div class="food-shopping-quick">
+                                <button class="film-random-btn" onclick="setShoppingDays(7)">7 дней</button>
+                                <button class="film-random-btn" onclick="setShoppingDays(14)">14 дней</button>
+                                <button class="film-random-btn" onclick="setShoppingDays(30)">30 дней</button>
+                            </div>
                         </div>
                         <div id="foodShoppingList"></div>
                     </div>
@@ -1083,8 +1087,14 @@
         <input type="number" class="modal-input" id="foodProductProtein" placeholder="Белки, г" step="0.1" />
         <input type="number" class="modal-input" id="foodProductFat" placeholder="Жиры, г" step="0.1" />
         <input type="number" class="modal-input" id="foodProductCarbs" placeholder="Углеводы, г" step="0.1" />
-        <div class="field-label">Цена (за 1 единицу)</div>
-        <input type="number" class="modal-input" id="foodProductPrice" placeholder="0" step="0.01" />
+        <div class="field-label">Цена (₽)</div>
+        <input type="number" class="modal-input" id="foodProductPrice" placeholder="350" step="0.01" />
+
+        <div class="field-label">За сколько</div>
+        <div class="food-price-row">
+            <input type="number" class="modal-input" id="foodProductPriceAmount" placeholder="1000" step="1" style="margin-bottom:0;" />
+            <span class="food-price-unit" id="foodPriceUnitLabel">г</span>
+        </div>
         <div class="modal-actions">
             <button class="modal-btn danger" id="foodProductDeleteBtn" style="display:none;" onclick="deleteFoodProductFromModal()">Удалить</button>
             <button class="modal-btn primary" onclick="saveFoodProduct()">Сохранить</button>

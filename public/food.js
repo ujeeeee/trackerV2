@@ -301,7 +301,7 @@ function renderProductsList() {
     c.innerHTML = foodProducts.map(p => `<div class="list-item" onclick="closeModal('foodProductsListModal'); openFoodProductModal(${p.id})">
         <div class="item-info">
             <div class="item-title">${escapeHtml(p.name)}</div>
-            <div class="item-sub">${p.kcal} ккал / 100 ${p.unit} · ${p.price ? p.price + ' ₽/' + p.unit : '—'}</div>
+            <div class="item-sub">${p.kcal} ккал / 100 ${p.unit}${p.price ? ' · ' + p.price + ' ₽ за ' + (p.price_amount || 100) + ' ' + p.unit : ''}</div>
         </div>
     </div>`).join('');
 }
@@ -311,7 +311,7 @@ function openFoodProductModal(id = null) {
     const title = document.getElementById('foodProductTitle');
     const nameEl = document.getElementById('foodProductName');
     const delBtn = document.getElementById('foodProductDeleteBtn');
-    const fields = ['foodProductKcal','foodProductProtein','foodProductFat','foodProductCarbs','foodProductPrice'];
+    const fields = ['foodProductKcal','foodProductProtein','foodProductFat','foodProductCarbs','foodProductPrice','foodProductPriceAmount'];
 
     if (id) {
         const p = foodProducts.find(x => x.id === id);
@@ -324,24 +324,33 @@ function openFoodProductModal(id = null) {
             document.getElementById('foodProductFat').value = p.fat;
             document.getElementById('foodProductCarbs').value = p.carbs;
             document.getElementById('foodProductPrice').value = p.price;
+            document.getElementById('foodProductPriceAmount').value = p.price_amount || 100;
         }
         delBtn.style.display = 'block';
     } else {
         title.textContent = 'Новый продукт';
         nameEl.value = '';
         fields.forEach(f => document.getElementById(f).value = '');
+        document.getElementById('foodProductPriceAmount').value = 100;
         delBtn.style.display = 'none';
     }
     document.querySelectorAll('#foodProductUnit [data-v]').forEach(b =>
         b.classList.toggle('active', b.dataset.v === foodProductCtx.unit));
+    updateFoodPriceUnitLabel();
     openModal('foodProductModal');
     setTimeout(() => nameEl.focus(), 200);
+}
+
+function updateFoodPriceUnitLabel() {
+    const lbl = document.getElementById('foodPriceUnitLabel');
+    if (lbl) lbl.textContent = foodProductCtx.unit;
 }
 
 function pickFoodUnit(v, btn) {
     foodProductCtx.unit = v;
     document.querySelectorAll('#foodProductUnit [data-v]').forEach(b => b.classList.remove('active'));
     btn.classList.add('active');
+    updateFoodPriceUnitLabel();
 }
 
 async function saveFoodProduct() {
@@ -355,6 +364,7 @@ async function saveFoodProduct() {
         fat: document.getElementById('foodProductFat').value,
         carbs: document.getElementById('foodProductCarbs').value,
         price: document.getElementById('foodProductPrice').value,
+        price_amount: document.getElementById('foodProductPriceAmount').value,
     };
     try {
         let created = null;

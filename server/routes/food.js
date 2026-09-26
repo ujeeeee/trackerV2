@@ -52,7 +52,7 @@ router.get('/products', authMiddleware, async (req, res) => {
 });
 
 router.post('/products', authMiddleware, async (req, res) => {
-    const { name, unit, kcal, protein, fat, carbs, price } = req.body;
+    const { name, unit, kcal, protein, fat, carbs, price, price_amount } = req.body;
     if (!name?.trim()) return res.status(400).json({ error: 'Name required' });
     const { data, error } = await supabase.from('food_products').insert({
         tg_id: req.tg_id, name: name.trim(),
@@ -62,6 +62,7 @@ router.post('/products', authMiddleware, async (req, res) => {
         fat: Number(fat) || 0,
         carbs: Number(carbs) || 0,
         price: Number(price) || 0,
+        price_amount: Number(price_amount) || 100,
     }).select().single();
     if (error) return res.status(500).json({ error: error.message });
     res.json({ product: data });
@@ -71,7 +72,7 @@ router.patch('/products/:id', authMiddleware, async (req, res) => {
     const updates = {};
     if (req.body.name !== undefined) updates.name = req.body.name.trim();
     if (req.body.unit !== undefined) updates.unit = req.body.unit;
-    ['kcal','protein','fat','carbs','price'].forEach(k => {
+    ['kcal','protein','fat','carbs','price','price_amount'].forEach(k => {
         if (req.body[k] !== undefined) updates[k] = Number(req.body[k]) || 0;
     });
     const { data, error } = await supabase.from('food_products').update(updates)
@@ -340,15 +341,17 @@ router.get('/shopping', authMiddleware, async (req, res) => {
         totals[ing.product_id] += Number(ing.amount) * sum;
     });
 
-    const items = Object.entries(totals).map(([pid, amount]) => {
-        const p = pMap[pid];
-        if (!p) return null;
-        return {
-            product: p,
-            amount: Math.round(amount * 100) / 100,
-            cost: Math.round(amount * Number(p.price || 0) * 100) / 100,
-        };
-    }).filter(Boolean);
+const items = Object.entries(totals).map(([pid, amount]) => {
+    const p = pMap[pid];
+    if (!p) return null;
+    const pa = Number(p.price_amount) || 100;
+    const cost = pa > 0 ? (amount / pa) * Number(p.price || 0) : 0;
+    return {
+        product: p,
+        amount: Math.round(amount * 100) / 100,
+        cost: Math.round(cost * 100) / 100,
+    };
+}).filter(Boolean);
 
     const total = items.reduce((s, x) => s + x.cost, 0);
     res.json({ items, total: Math.round(total * 100) / 100 });
