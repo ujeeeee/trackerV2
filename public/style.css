@@ -1556,3 +1556,27 @@ textarea.modal-input {
     transform: scale(0.92);
     background: var(--card-hover);
 }
+
+/* ==========================================
+   FOOD: кнопка отчёта
+   ========================================== */
+.food-report-fab {
+    flex-shrink: 0;
+    align-self: flex-end;
+    background: var(--bg-secondary);
+    border: 1px solid var(--glass-border);
+    color: var(--accent);
+    padding: 10px 16px;
+    border-radius: 12px;
+    font-size: 13px;
+    font-weight: 700;
+    font-family: inherit;
+    cursor: pointer;
+    transition: 0.15s;
+    white-space: nowrap;
+    line-height: 1;
+}
+.food-report-fab:active {
+    background: var(--card-hover);
+    transform: scale(0.95);
+}
