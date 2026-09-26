@@ -78,7 +78,7 @@ body {
     width: 100%;
     min-height: 100vh;
     padding: 16px 16px 8px;
-    padding-top: calc(env(safe-area-inset-top, 0px) + 90px);
+    padding-top: calc(env(safe-area-inset-top, 0px) + 95px);
     padding-bottom: calc(env(safe-area-inset-bottom, 0px) + 120px);
 }
 .screen.active { display: flex; flex-direction: column; }
