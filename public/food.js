@@ -152,7 +152,10 @@ function renderFoodDiary() {
                 </div>
                 <div class="food-meal-items">
                     ${items.map(e => `<div class="food-meal-item">
-                        <div class="food-meal-item-name">${escapeHtml(e.oneoff_name || e.product_id || e.recipe_id || '—')}</div>
+                        <div class="food-meal-item-info">
+                            <div class="food-meal-item-name">${escapeHtml(e.displayName || '—')}</div>
+                            ${e.displayUnit ? `<div class="food-meal-item-unit">${escapeHtml(e.displayUnit)}</div>` : ''}
+                        </div>
                         <div class="food-meal-item-kcal">${Math.round(e.kcal)}</div>
                         <button class="food-meal-item-del" onclick="deleteFoodDiaryEntry(${e.id})">✕</button>
                     </div>`).join('')}
@@ -738,14 +741,6 @@ async function saveFoodGoal() {
 // ==========================================
 // ШОППИНГ
 // ==========================================
-function setShoppingDays(n) {
-    const from = localDate(new Date());
-    const d = new Date(); d.setDate(d.getDate() + n - 1);
-    document.getElementById('shopFrom').value = from;
-    document.getElementById('shopTo').value = localDate(d);
-    loadShopping();
-}
-
 async function loadShopping() {
     const from = document.getElementById('shopFrom').value;
     const to = document.getElementById('shopTo').value;

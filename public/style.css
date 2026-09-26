@@ -1304,7 +1304,7 @@ textarea.modal-input {
 }
 .food-meal-item:last-child { border-bottom: none; }
 .food-meal-item-name {
-    flex: 1; color: var(--text);
+    color: var(--text);
     white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
 }
 .food-meal-item-kcal {
@@ -1387,14 +1387,14 @@ textarea.modal-input {
     padding: 10px 12px;
     font-size: 13px;
 }
-.food-shopping-quick {
-    display: flex;
-    gap: 6px;
+
+.food-meal-item-info {
+    flex: 1; min-width: 0;
 }
-.food-shopping-quick .film-random-btn {
-    flex: 1;
-    padding: 10px 8px;
-    font-size: 13px;
+.food-meal-item-unit {
+    font-size: 11px;
+    color: var(--text-tertiary);
+    margin-top: 2px;
 }
 
 /* ==========================================

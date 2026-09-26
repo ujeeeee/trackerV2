@@ -232,9 +232,40 @@ router.delete('/plan/:id', authMiddleware, async (req, res) => {
 router.get('/diary', authMiddleware, async (req, res) => {
     const day = req.query.day;
     if (!day) return res.status(400).json({ error: 'day required' });
-    const { data } = await supabase.from('food_diary').select('*')
+    const { data: entries } = await supabase.from('food_diary').select('*')
         .eq('tg_id', req.tg_id).eq('day', day).order('sort_order').order('created_at');
-    res.json({ entries: data || [] });
+    if (!entries?.length) return res.json({ entries: [] });
+
+    // Подтягиваем названия рецептов и продуктов
+    const recipeIds = [...new Set(entries.filter(e => e.recipe_id).map(e => e.recipe_id))];
+    const productIds = [...new Set(entries.filter(e => e.product_id).map(e => e.product_id))];
+
+    const [{ data: recipes }, { data: products }] = await Promise.all([
+        recipeIds.length ? supabase.from('food_recipes').select('id, name').in('id', recipeIds) : Promise.resolve({ data: [] }),
+        productIds.length ? supabase.from('food_products').select('id, name, unit').in('id', productIds) : Promise.resolve({ data: [] }),
+    ]);
+
+    const rMap = {};
+    (recipes || []).forEach(r => { rMap[r.id] = r; });
+    const pMap = {};
+    (products || []).forEach(p => { pMap[p.id] = p; });
+
+    const result = entries.map(e => {
+        let displayName = '';
+        let displayUnit = '';
+        if (e.source === 'recipe' && e.recipe_id) {
+            displayName = rMap[e.recipe_id]?.name || 'Рецепт';
+            displayUnit = e.amount ? `× ${e.amount} порц.` : '';
+        } else if (e.source === 'product' && e.product_id) {
+            displayName = pMap[e.product_id]?.name || 'Продукт';
+            displayUnit = e.amount ? `${e.amount} ${pMap[e.product_id]?.unit || 'г'}` : '';
+        } else {
+            displayName = e.oneoff_name || 'Разовое';
+        }
+        return { ...e, displayName, displayUnit };
+    });
+
+    res.json({ entries: result });
 });
 
 router.post('/diary', authMiddleware, async (req, res) => {
@@ -303,55 +334,79 @@ router.get('/shopping', authMiddleware, async (req, res) => {
     const { from, to } = req.query;
     if (!from || !to) return res.status(400).json({ error: 'from and to required' });
 
-    const { data: plan } = await supabase.from('food_plan').select('*')
+    // Берём записи из дневника за период
+    const { data: entries } = await supabase.from('food_diary').select('*')
         .eq('tg_id', req.tg_id).gte('day', from).lte('day', to);
+    if (!entries?.length) return res.json({ items: [], total: 0 });
 
-    if (!plan?.length) return res.json({ items: [], total: 0 });
+    const recipeIds = [...new Set(entries.filter(e => e.recipe_id).map(e => e.recipe_id))];
+    const productIdsDirect = [...new Set(entries.filter(e => e.product_id).map(e => e.product_id))];
 
-    const recipeIds = [...new Set(plan.map(p => p.recipe_id))];
-    const { data: ings } = await supabase.from('food_recipe_ingredients').select('*').in('recipe_id', recipeIds);
-
-    const productIds = [...new Set((ings || []).map(i => i.product_id))];
-    const { data: products } = productIds.length
-        ? await supabase.from('food_products').select('*').in('id', productIds)
+    // Ингредиенты рецептов
+    const { data: ings } = recipeIds.length
+        ? await supabase.from('food_recipe_ingredients').select('*').in('recipe_id', recipeIds)
         : { data: [] };
+
+    // Собираем все product_id
+    const allProductIds = [...new Set([
+        ...productIdsDirect,
+        ...(ings || []).map(i => i.product_id),
+    ])];
+
+    const { data: products } = allProductIds.length
+        ? await supabase.from('food_products').select('*').in('id', allProductIds)
+        : { data: [] };
+
     const pMap = {};
     (products || []).forEach(p => { pMap[p.id] = p; });
 
-    // План: recipe_id → сколько раз и с какими порциями
-    const recipeUse = {};
-    plan.forEach(p => {
-        (recipeUse[p.recipe_id] ||= []).push(Number(p.portions) || 1);
-    });
-
-    // Ингредиенты по продуктам
+    // Складываем
     const totals = {};
-    (ings || []).forEach(ing => {
-        const portionsList = recipeUse[ing.recipe_id];
-        if (!portionsList) return;
-        // В рецепте указано количество на все порции.
-        // Если в плане portions != portions рецепта, надо масштабировать.
-        // Для простоты: amount * (planPortions / recipePortions).
-        // Но recipePortions у нас в food_recipes, а тут нет.
-        // Считаем, что amount — это на 1 порцию. Клиент при создании рецепта
-        // уже указал amount исходя из того, что portions=1.
-        // Масштабирование: total = amount * sum(planPortions).
-        const sum = portionsList.reduce((s, x) => s + x, 0);
-        if (!totals[ing.product_id]) totals[ing.product_id] = 0;
-        totals[ing.product_id] += Number(ing.amount) * sum;
+
+    // 1) Прямые продукты (source=product, oneoff не считаем — у него нет product_id)
+    entries.forEach(e => {
+        if (e.product_id && e.amount) {
+            if (!totals[e.product_id]) totals[e.product_id] = 0;
+            totals[e.product_id] += Number(e.amount);
+        }
     });
 
-const items = Object.entries(totals).map(([pid, amount]) => {
-    const p = pMap[pid];
-    if (!p) return null;
-    const pa = Number(p.price_amount) || 100;
-    const cost = pa > 0 ? (amount / pa) * Number(p.price || 0) : 0;
-    return {
-        product: p,
-        amount: Math.round(amount * 100) / 100,
-        cost: Math.round(cost * 100) / 100,
-    };
-}).filter(Boolean);
+    // 2) Ингредиенты рецептов (amount в diary = количество порций)
+    // Ингредиенты рецепта — на N порций (recipe.portions). Чтобы получить на 1 порцию — делим.
+    // Но у нас нет portions рецепта в этой выборке. Подтянем.
+    if (recipeIds.length && ings?.length) {
+        const { data: recipes } = await supabase.from('food_recipes').select('id, portions')
+            .in('id', recipeIds);
+        const rPortions = {};
+        (recipes || []).forEach(r => { rPortions[r.id] = r.portions || 1; });
+
+        const entryPortions = {}; // recipe_id -> сумма порций
+        entries.forEach(e => {
+            if (!e.recipe_id) return;
+            entryPortions[e.recipe_id] = (entryPortions[e.recipe_id] || 0) + (Number(e.amount) || 1);
+        });
+
+        (ings || []).forEach(ing => {
+            const totalPortions = entryPortions[ing.recipe_id];
+            if (!totalPortions) return;
+            const portionsInRecipe = rPortions[ing.recipe_id] || 1;
+            const amount = Number(ing.amount) * (totalPortions / portionsInRecipe);
+            if (!totals[ing.product_id]) totals[ing.product_id] = 0;
+            totals[ing.product_id] += amount;
+        });
+    }
+
+    const items = Object.entries(totals).map(([pid, amount]) => {
+        const p = pMap[pid];
+        if (!p) return null;
+        const pa = Number(p.price_amount) || 100;
+        const cost = pa > 0 ? (amount / pa) * Number(p.price || 0) : 0;
+        return {
+            product: p,
+            amount: Math.round(amount * 100) / 100,
+            cost: Math.round(cost * 100) / 100,
+        };
+    }).filter(Boolean);
 
     const total = items.reduce((s, x) => s + x.cost, 0);
     res.json({ items, total: Math.round(total * 100) / 100 });
