@@ -53,7 +53,10 @@
 
                         <div class="goals-header" style="margin-top:24px;">
                             <span class="goals-header-title">Привычки</span>
-                            <button class="btn-icon-add" onclick="openHabitModal()">+</button>
+                            <div style="display:flex;gap:4px;">
+                                <button class="btn-icon-add" onclick="openHabitReport()">📊</button>
+                                <button class="btn-icon-add" onclick="openHabitModal()">+</button>
+                            </div>
                         </div>
                         <div class="week-nav">
                             <button class="week-nav-btn" onclick="weekPrev()">‹</button>
@@ -1011,6 +1014,15 @@
             <button class="modal-btn secondary" onclick="closeImportModal()">Отмена</button>
             <button class="modal-btn primary" onclick="saveImport()">Импортировать</button>
         </div>
+    </div>
+</div>
+
+<!-- HABIT REPORT -->
+<div class="modal-overlay" id="habitReportModal">
+    <div class="modal-sheet">
+        <div class="modal-handle"></div>
+        <h3 class="modal-title">Привычки</h3>
+        <div id="habitReportBody"></div>
     </div>
 </div>
 

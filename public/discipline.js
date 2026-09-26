@@ -465,3 +465,99 @@ async function deleteGoalFromModal() {
     closeGoalModal();
     await loadAreas();
 }
+
+// ==========================================
+// ===== HABIT REPORT (все привычки) =====
+// ==========================================
+async function openHabitReport() {
+    document.getElementById('habitReportBody').innerHTML = '<div class="widget-empty">Загрузка...</div>';
+    openModal('habitReportModal');
+    try {
+        const { habits: data } = await api('/api/disc/habits?days=365');
+        renderHabitReport(data);
+    } catch (e) {
+        document.getElementById('habitReportBody').innerHTML = `<div class="widget-empty">Ошибка: ${e.message}</div>`;
+    }
+}
+
+function closeHabitReport() { closeModal('habitReportModal'); }
+
+function renderHabitReport(list) {
+    const body = document.getElementById('habitReportBody');
+    if (!list.length) {
+        body.innerHTML = '<div class="widget-empty">Нет привычек</div>';
+        return;
+    }
+
+    const today = new Date(); today.setHours(12, 0, 0, 0);
+    const todayStr = localDate(today);
+
+    // Начало: 12 месяцев назад, округлённое до понедельника
+    const start = new Date(today);
+    start.setMonth(start.getMonth() - 12);
+    const startMonday = getMonday(start);
+
+    // Список дней от старта до сегодня
+    const days = [];
+    const cursor = new Date(startMonday);
+    while (cursor <= today) {
+        days.push(localDate(cursor));
+        cursor.setDate(cursor.getDate() + 1);
+    }
+
+    // Разбиваем на недели (по 7 дней)
+    const weeks = [];
+    for (let i = 0; i < days.length; i += 7) {
+        weeks.push(days.slice(i, i + 7));
+    }
+
+    const MONTHS = ['янв','фев','мар','апр','май','июн','июл','авг','сен','окт','ноя','дек'];
+
+    body.innerHTML = list.map(h => {
+        const done = new Set((h.logs || []).filter(l => l.done).map(l => l.date));
+
+        // Сетка: 7 строк (Пн-Вс), колонки — недели
+        let grid = '';
+        weeks.forEach(week => {
+            week.forEach(day => {
+                const isFuture = day > todayStr;
+                const isDone = done.has(day);
+                let cls = 'habit-rep-cell';
+                if (isFuture) cls += ' future';
+                else if (isDone) cls += ' done';
+                else cls += ' empty';
+                grid += `<div class="${cls}"></div>`;
+            });
+        });
+
+        // Метки месяцев над сеткой
+        let months = '';
+        let lastMonth = -1;
+        weeks.forEach((week, i) => {
+            const firstDay = new Date(week[0] + 'T12:00:00');
+            const m = firstDay.getMonth();
+            if (m !== lastMonth) {
+                months += `<span style="left:${i * 15}px;">${MONTHS[m]}</span>`;
+                lastMonth = m;
+            }
+        });
+
+        return `<div class="habit-rep-block">
+            <div class="habit-rep-header">
+                <div class="habit-rep-name" onclick="closeHabitReport(); openHabitDashboard(${h.id})">${escapeHtml(h.name)}</div>
+                <div class="habit-rep-count">${done.size}</div>
+            </div>
+            <div class="habit-rep-scroll">
+                <div class="habit-rep-months">${months}</div>
+                <div class="habit-rep-grid">${grid}</div>
+            </div>
+        </div>`;
+    }).join('');
+
+    // Скроллим к сегодняшнему дню
+    setTimeout(() => {
+        document.querySelectorAll('.habit-rep-scroll').forEach(el => {
+            el.scrollLeft = el.scrollWidth;
+        });
+    }, 50);
+}

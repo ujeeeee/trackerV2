@@ -13,7 +13,8 @@ router.get('/habits', authMiddleware, async (req, res) => {
         .order('sort_order').order('created_at');
     if (!habits) return res.json({ habits: [] });
 
-    const since = new Date(); since.setDate(since.getDate() - 60);
+    const days = parseInt(req.query.days) || 60;
+    const since = new Date(); since.setDate(since.getDate() - days);
     const { data: logs } = await supabase.from('disc_habit_logs').select('habit_id, date, done')
         .eq('tg_id', req.tg_id).gte('date', localDate(since));
 
