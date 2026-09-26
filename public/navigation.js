@@ -38,6 +38,11 @@ function switchSubTab(parent, tab, btn) {
     ps.querySelectorAll('.subtab').forEach(st => st.classList.remove('active'));
     const target = document.getElementById(`${parent}-${tab}`);
     if (target) target.classList.add('active');
+
+    // Автоподгрузка данных для конкретных табов
+    if (parent === 'food' && tab === 'shopping') loadShopping();
+    if (parent === 'food' && tab === 'diary') loadFoodDiary();
+    if (parent === 'food' && tab === 'recipes') renderFoodRecipes();
 }
 
 // ==========================================

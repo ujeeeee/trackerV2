@@ -45,6 +45,7 @@ async function loadFood() {
         renderFoodGoalCard();
         renderFoodRecipes();
         loadFoodDiary();
+        loadShopping(); // ← новая строка: сразу грузим покупки
     } catch (e) { console.error(e); }
 }
 
