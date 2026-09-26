@@ -537,7 +537,7 @@ function renderHabitReport(list) {
             const firstDay = new Date(week[0] + 'T12:00:00');
             const m = firstDay.getMonth();
             if (m !== lastMonth) {
-                months += `<span style="left:${i * 15}px;">${MONTHS[m]}</span>`;
+                months += `<span style="left:${i * 19}px;">${MONTHS[m]}</span>`;
                 lastMonth = m;
             }
         });
