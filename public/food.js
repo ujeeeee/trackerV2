@@ -764,8 +764,18 @@ function renderShopping(total = 0) {
         return;
     }
     const checked = JSON.parse(localStorage.getItem('food_shopping_checked') || '{}');
+
+    // Пересчитываем итог только по неотмеченным
+    const remainingTotal = foodShoppingItems.reduce((s, it) => {
+        return checked[it.product.id] ? s : s + (it.cost || 0);
+    }, 0);
+    const boughtCount = foodShoppingItems.filter(it => checked[it.product.id]).length;
+
     c.innerHTML = `<div class="widget">
-        <div class="widget-title"><span>Список покупок</span></div>
+        <div class="widget-title">
+            <span>Список покупок</span>
+            ${boughtCount ? `<span class="widget-title-count">${boughtCount}/${foodShoppingItems.length}</span>` : ''}
+        </div>
         ${foodShoppingItems.map(it => {
             const key = it.product.id;
             const isChecked = checked[key];
@@ -779,8 +789,17 @@ function renderShopping(total = 0) {
                 <div class="food-shop-meta">${meta}</div>
             </div>`;
         }).join('')}
-        ${total ? `<div class="cash-total" style="margin-top:12px;">Итого: <b>${Math.round(total)}р</b></div>` : ''}
+        ${remainingTotal !== 0 || boughtCount ? `<div class="cash-total" style="margin-top:12px;">
+            Итого: <b>${Math.round(remainingTotal)}р</b>
+        </div>` : ''}
     </div>`;
+}
+
+function toggleShopCheck(id) {
+    const checked = JSON.parse(localStorage.getItem('food_shopping_checked') || '{}');
+    checked[id] = !checked[id];
+    localStorage.setItem('food_shopping_checked', JSON.stringify(checked));
+    renderShopping();
 }
 
 function toggleShopCheck(id) {
