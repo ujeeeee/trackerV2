@@ -1527,15 +1527,15 @@ textarea.modal-input {
 .food-goal-card {
     position: relative;
     overflow: hidden;
-    padding-bottom: 56px; /* место под кнопку снизу */
 }
 .food-goal-body {
-    position: static;
-    display: block;
+    position: relative;
+    display: flex;
+    align-items: flex-end;
 }
 .food-goal-body .food-macros-row {
     flex: 1;
-    padding-right: 0;
+    padding-right: 100px; /* место под кнопку справа */
 }
 .food-goal-body .food-macro {
     padding: 2px 0;
@@ -1562,15 +1562,15 @@ textarea.modal-input {
 /* Кнопка «Отчёт» — в самом углу карточки */
 .food-report-fab {
     position: absolute;
-    right: 0;
-    bottom: 0;
+    right: -18px;
+    bottom: -18px;
     background: var(--bg-secondary);
     border: none;
-    border-left: 1px solid var(--glass-border);
     border-top: 1px solid var(--glass-border);
+    border-left: 1px solid var(--glass-border);
     color: var(--accent);
-    padding: 12px 18px;
-    border-radius: 0;
+    padding: 14px 22px;
+    border-radius: 14px 14px 0 14px; /* 3 угла скруглены, правый-нижний — в угол карточки */
     font-size: 13px;
     font-weight: 700;
     font-family: inherit;
