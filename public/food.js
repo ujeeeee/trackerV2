@@ -787,3 +787,124 @@ function resetShopChecks() {
     localStorage.removeItem('food_shopping_checked');
     renderShopping(foodShoppingItems.reduce((s, x) => s + (x.cost || 0), 0));
 }
+
+function openFoodDayPicker() {
+    const inp = document.getElementById('foodDayPicker');
+    inp.value = foodDiaryDate;
+    // showPicker() — нативный datepicker
+    if (inp.showPicker) inp.showPicker();
+    else inp.click();
+}
+
+function onFoodDayPicked() {
+    const val = document.getElementById('foodDayPicker').value;
+    if (val) {
+        foodDiaryDate = val;
+        loadFoodDiary();
+    }
+}
+
+// ==========================================
+// ОТЧЁТ
+// ==========================================
+let foodReportRange = 7;
+
+function openFoodReport() {
+    foodReportRange = 7;
+    document.querySelectorAll('#foodReportModal [data-v]').forEach(b =>
+        b.classList.toggle('active', parseInt(b.dataset.v) === 7));
+    document.getElementById('foodReportBody').innerHTML = '<div class="widget-empty">Загрузка...</div>';
+    openModal('foodReportModal');
+    loadFoodReport();
+}
+
+function pickReportRange(n, btn) {
+    foodReportRange = n;
+    document.querySelectorAll('#foodReportModal [data-v]').forEach(b => b.classList.remove('active'));
+    btn.classList.add('active');
+    loadFoodReport();
+}
+
+async function loadFoodReport() {
+    const body = document.getElementById('foodReportBody');
+    const days = [];
+    for (let i = foodReportRange - 1; i >= 0; i--) {
+        const d = new Date(); d.setDate(d.getDate() - i);
+        days.push(localDate(d));
+    }
+
+    const allEntries = await Promise.all(days.map(day =>
+        api(`/api/food/diary?day=${day}`).then(r => ({ day, entries: r.entries })).catch(() => ({ day, entries: [] }))
+    ));
+
+    const norm = calcFoodNorm();
+    const rows = allEntries.map(({ day, entries }) => {
+        const kcal = entries.reduce((s, e) => s + Number(e.kcal || 0), 0);
+        const p = entries.reduce((s, e) => s + Number(e.protein || 0), 0);
+        const f = entries.reduce((s, e) => s + Number(e.fat || 0), 0);
+        const c = entries.reduce((s, e) => s + Number(e.carbs || 0), 0);
+        return { day, kcal: Math.round(kcal), p: Math.round(p), f: Math.round(f), c: Math.round(c) };
+    });
+
+    const filled = rows.filter(r => r.kcal > 0);
+    const avg = filled.length ? {
+        kcal: Math.round(filled.reduce((s, r) => s + r.kcal, 0) / filled.length),
+        p: Math.round(filled.reduce((s, r) => s + r.p, 0) / filled.length),
+        f: Math.round(filled.reduce((s, r) => s + r.f, 0) / filled.length),
+        c: Math.round(filled.reduce((s, r) => s + r.c, 0) / filled.length),
+    } : { kcal: 0, p: 0, f: 0, c: 0 };
+
+    const todayStr = localDate(new Date());
+    const months = ['янв','фев','мар','апр','мая','июн','июл','авг','сен','окт','ноя','дек'];
+
+    let html = `<div class="food-report-table-wrap"><table class="food-report-table">
+        <thead><tr>
+            <th>Дата</th>
+            <th>Ккал</th>
+            <th>Б</th>
+            <th>Ж</th>
+            <th>У</th>
+        </tr></thead><tbody>`;
+
+    rows.forEach(r => {
+        const d = new Date(r.day + 'T12:00:00');
+        const lbl = `${d.getDate()} ${months[d.getMonth()]}`;
+        const isToday = r.day === todayStr;
+        let cls = '';
+        if (norm && r.kcal > 0) {
+            const diff = r.kcal - norm.kcal;
+            if (Math.abs(diff) > norm.kcal * 0.2) cls = 'off';
+        }
+        html += `<tr class="${isToday ? 'today' : ''} ${cls}">
+            <td>${lbl}${isToday ? ' •' : ''}</td>
+            <td>${r.kcal || '—'}</td>
+            <td>${r.p || '—'}</td>
+            <td>${r.f || '—'}</td>
+            <td>${r.c || '—'}</td>
+        </tr>`;
+    });
+
+    html += `</tbody></table></div>`;
+
+    if (filled.length) {
+        html += `<div class="food-report-avg">
+            <div class="food-report-avg-title">Среднее за ${filled.length} из ${rows.length} дней</div>
+            <div class="food-report-avg-grid">
+                <div><b>${avg.kcal}</b><span>ккал</span></div>
+                <div><b>${avg.p}</b><span>Б</span></div>
+                <div><b>${avg.f}</b><span>Ж</span></div>
+                <div><b>${avg.c}</b><span>У</span></div>
+            </div>
+        </div>`;
+        if (norm) {
+            const diff = avg.kcal - norm.kcal;
+            const sign = diff > 0 ? '+' : '';
+            const pct = Math.round(diff / norm.kcal * 100);
+            html += `<div class="food-report-diff">Отклонение от нормы: <b>${sign}${diff} ккал (${sign}${pct}%)</b></div>`;
+        }
+    } else {
+        html += `<div class="widget-empty">Нет данных за период</div>`;
+    }
+
+    body.innerHTML = html;
+}

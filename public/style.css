@@ -1409,3 +1409,98 @@ textarea.modal-input {
 #foodRecipeModal {
     z-index: 250;
 }
+
+.food-day-picker-hidden {
+    position: absolute;
+    opacity: 0;
+    pointer-events: none;
+    width: 0; height: 0;
+}
+#foodDayLabel {
+    cursor: pointer;
+    user-select: none;
+}
+
+.food-report-btn {
+    background: var(--card); backdrop-filter: blur(20px);
+    border: 1px solid var(--glass-border);
+    color: var(--text-secondary);
+    padding: 8px 14px; border-radius: 10px;
+    font-size: 12px; font-weight: 600;
+    font-family: inherit; cursor: pointer;
+    transition: 0.15s;
+}
+.food-report-btn:active { background: var(--card-hover); color: var(--accent); }
+
+.food-report-period {
+    display: flex; gap: 6px; margin-bottom: 14px;
+    padding: 4px; background: var(--bg-secondary);
+    border: 1px solid var(--glass-border);
+    border-radius: 12px;
+}
+.food-report-period .freq-tab { padding: 8px; }
+
+.food-report-table-wrap {
+    overflow-x: auto;
+    border: 1px solid var(--glass-border);
+    border-radius: 14px;
+    max-height: 50vh;
+    margin-bottom: 14px;
+}
+.food-report-table {
+    width: 100%; border-collapse: collapse;
+    font-size: 13px;
+}
+.food-report-table th {
+    padding: 10px 8px; text-align: center;
+    background: var(--bg-secondary);
+    color: var(--text-tertiary);
+    font-size: 10px; font-weight: 700;
+    text-transform: uppercase; letter-spacing: 0.5px;
+    position: sticky; top: 0;
+}
+.food-report-table td {
+    padding: 10px 8px; text-align: center;
+    border-top: 1px solid var(--glass-border);
+    color: var(--text);
+    font-weight: 500;
+}
+.food-report-table td:first-child {
+    text-align: left; color: var(--text-secondary);
+    font-weight: 600;
+}
+.food-report-table tr.today td {
+    background: var(--accent-soft);
+}
+.food-report-table tr.off td {
+    color: var(--warning);
+}
+
+.food-report-avg {
+    background: var(--bg-secondary);
+    border: 1px solid var(--glass-border);
+    border-radius: 14px;
+    padding: 14px;
+    margin-bottom: 10px;
+}
+.food-report-avg-title {
+    font-size: 11px; color: var(--text-tertiary);
+    text-transform: uppercase; letter-spacing: 0.5px;
+    font-weight: 700; margin-bottom: 10px;
+}
+.food-report-avg-grid {
+    display: grid; grid-template-columns: repeat(4, 1fr);
+    gap: 8px; text-align: center;
+}
+.food-report-avg-grid b {
+    display: block; font-size: 16px; color: var(--text);
+}
+.food-report-avg-grid span {
+    font-size: 10px; color: var(--text-tertiary);
+    text-transform: uppercase; letter-spacing: 0.3px;
+}
+.food-report-diff {
+    text-align: center; font-size: 13px;
+    color: var(--text-secondary); padding: 8px;
+}
+.food-report-diff b { color: var(--text); }
