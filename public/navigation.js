@@ -24,11 +24,11 @@ function goToScreen(index) {
     if (index === 0) loadMain();
     if (index === 1) { loadAreas(); loadHabits(); loadWeek(); loadTodos(); }
     if (index === 2) { loadPrograms(); loadMetrics(); }
-    if (index === 3) { loadBudget(); loadWishlist(); loadPiggy(); }
-    if (index === 4) loadPlaces();
-    if (index === 5) loadFilm();
-    if (index === 6) loadTea();
-    if (index === 7) loadFood();
+    if (index === 3) loadFood();
+    if (index === 4) { loadBudget(); loadWishlist(); loadPiggy(); }
+    if (index === 5) loadPlaces();
+    if (index === 6) loadFilm();
+    if (index === 7) loadTea();
 }
 
 function switchSubTab(parent, tab, btn) {

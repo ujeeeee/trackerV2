@@ -125,11 +125,11 @@ async function saveImport() {
 // ==========================================
 function openSearch() {
     const i = currentScreenIndex;
-    const titles = { 4: 'Поиск мест', 5: 'Поиск фильмов', 6: 'Поиск чая' };
+    const titles = { 5: 'Поиск мест', 6: 'Поиск фильмов', 7: 'Поиск чая' };
     const placeholders = {
-        4: 'Название, город, страна, отзыв...',
-        5: 'Название, год, отзыв...',
-        6: 'Название или отзыв...',
+        5: 'Название, город, страна, отзыв...',
+        6: 'Название, год, отзыв...',
+        7: 'Название или отзыв...',
     };
     document.getElementById('searchTitle').textContent = titles[i] || 'Поиск';
     const input = document.getElementById('searchInput');
@@ -155,7 +155,7 @@ function runSearch() {
 
     let results = [];
 
-    if (currentScreenIndex === 4) {
+    if (currentScreenIndex === 5) {
         const all = [];
         placesTypes.forEach(t => (t.items || []).forEach(i => all.push({ ...i, _type: t.name })));
         placesOrphans.forEach(i => all.push({ ...i, _type: 'Без типа' }));
@@ -170,7 +170,7 @@ function runSearch() {
             sub: [p.country, p.city, p._type].filter(Boolean).join(' · '),
             onclick: `closeSearch(); openPlaceModal(${p.id})`
         }));
-    } else if (currentScreenIndex === 5) {
+    } else if (currentScreenIndex === 6) {
         const all = [];
         filmGenres.forEach(g => (g.movies || []).forEach(m => all.push({ ...m, _genre: g.name })));
         filmOrphans.forEach(m => all.push({ ...m, _genre: 'Без жанра' }));
@@ -183,7 +183,7 @@ function runSearch() {
             sub: [m.year, m._genre].filter(Boolean).join(' · '),
             onclick: `closeSearch(); openFilmModal(${m.id})`
         }));
-    } else if (currentScreenIndex === 6) {
+    } else if (currentScreenIndex === 7) {
         const all = [];
         teaGroups.forEach(g => (g.items || []).forEach(i => all.push({ ...i, _group: g.name })));
         teaOrphans.forEach(i => all.push({ ...i, _group: 'Без группы' }));
