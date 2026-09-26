@@ -122,7 +122,7 @@ function renderFoodGoalCard() {
                 <div class="food-macro"><div class="food-macro-val">${Math.round(f)}</div><div class="food-macro-lbl">Ж / ${norm.fat}</div></div>
                 <div class="food-macro"><div class="food-macro-val">${Math.round(cc)}</div><div class="food-macro-lbl">У / ${norm.carbs}</div></div>
             </div>
-            <button class="food-report-fab" onclick="event.stopPropagation(); openFoodReport()">📊</button>
+            <button class="food-report-fab" onclick="event.stopPropagation(); openFoodReport()">📊 Отчёт</button>
         </div>
     </div>`;
 }

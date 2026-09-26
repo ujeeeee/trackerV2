@@ -2,9 +2,8 @@
    ПЕРЕМЕННЫЕ
    ========================================== */
 :root {
-    --bg: #0b0911;
---bg: #0a0809;
---bg-gradient:
+    --bg: #0a0809;
+    --bg-gradient:
     radial-gradient(ellipse 80% 40% at 50% 0%, rgba(232, 80, 61, 0.10) 0%, transparent 70%);
     --glass: rgba(28, 28, 32, 0.5);
     --glass-strong: rgba(20, 20, 24, 0.65);
@@ -1526,51 +1525,24 @@ textarea.modal-input {
 .food-report-diff b { color: var(--text); }
 
 .food-goal-card {
-    overflow: hidden;
     position: relative;
 }
 .food-goal-body {
     position: relative;
     display: flex;
     align-items: flex-end;
-    gap: 6px;
+    gap: 8px;
 }
 .food-goal-body .food-macros-row {
     flex: 1;
-    /* Сдвигаем влево и поджимаем, чтобы не залезало под вырез */
+    /* Место под кнопку справа */
     padding-right: 8px;
 }
 .food-goal-body .food-macro {
     padding: 2px 0;
 }
 
-/* Круглая кнопка-вырез в нижнем-правом углу */
-.food-report-fab {
-    position: absolute;
-    right: -18px;
-    bottom: -18px;
-    width: 60px;
-    height: 60px;
-    border-radius: 50%;
-    background: var(--bg-secondary);
-    border: 1px solid var(--glass-border);
-    color: var(--accent);
-    font-size: 20px;
-    cursor: pointer;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    /* Создаёт эффект «выреза» — обводка цветом фона страницы */
-    box-shadow: 0 0 0 8px var(--bg);
-    transition: 0.15s;
-    z-index: 2;
-    font-family: inherit;
-    padding: 0;
-}
-.food-report-fab:active {
-    transform: scale(0.92);
-    background: var(--card-hover);
-}
+/* Маленькая прямоугольная кнопка «Отчёт» */
 
 /* КБЖУ — компактнее */
 .food-goal-body .food-macro-val {
@@ -1578,4 +1550,9 @@ textarea.modal-input {
 }
 .food-goal-body .food-macro-lbl {
     font-size: 9px;
+}
+
+.food-report-fab:active {
+    transform: scale(0.92);
+    background: var(--card-hover);
 }
