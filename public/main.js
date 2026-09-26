@@ -19,7 +19,7 @@ function renderMain(data) {
 
 function renderMainGreeting() {
     const h = new Date().getHours();
-    const g = h < 6 ? 'Доброй ночи' : h < 12 ? 'Доброе утро' : h < 18 ? 'Добрый день' : 'Добрый вечер';
+    const g = h < 6 ? 'Доброй ночи' : h < 12 ? 'Доброе утро' : h < 18 ? 'Добрый день ааа' : 'Добрый вечер';
     document.getElementById('mainGreeting').textContent = `${g}, ${tgUser.name}`;
     const months = ['января','февраля','марта','апреля','мая','июня','июля','августа','сентября','октября','ноября','декабря'];
     const days = ['воскресенье','понедельник','вторник','среда','четверг','пятница','суббота'];
