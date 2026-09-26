@@ -293,15 +293,14 @@
 
                     <div id="food-diary" class="subtab active">
                         <div id="foodGoalCard"></div>
-                        <div style="text-align:right;margin:-4px 0 12px;">
-                            <button class="food-report-btn" onclick="openFoodReport()">📊 Отчёт</button>
-                        </div>
                         <div class="food-day-nav">
-                                <button class="week-nav-btn" onclick="foodDayPrev()">‹</button>
-                                <div class="week-range" id="foodDayLabel" onclick="openFoodDayPicker()"></div>
-                                <button class="week-nav-btn" onclick="foodDayNext()">›</button>
+                            <button class="week-nav-btn" onclick="foodDayPrev()">‹</button>
+                            <div class="food-day-picker-wrap">
+                                <div class="week-range" id="foodDayLabel"></div>
                                 <input type="date" id="foodDayPicker" class="food-day-picker-hidden" onchange="onFoodDayPicked()" />
                             </div>
+                            <button class="week-nav-btn" onclick="foodDayNext()">›</button>
+                        </div>
                         <div id="foodMealsList"></div>
                         <button class="food-add-meal" onclick="openMealNameModal()">+ Добавить приём</button>
                         <div id="foodDayTotals"></div>
@@ -1232,9 +1231,9 @@
         <div class="modal-handle"></div>
         <h3 class="modal-title">Отчёт</h3>
         <div class="food-report-period">
-            <button class="freq-tab active" data-v="7" onclick="pickReportRange(7, this)">7 дней</button>
-            <button class="freq-tab" data-v="30" onclick="pickReportRange(30, this)">30 дней</button>
-            <button class="freq-tab" data-v="90" onclick="pickReportRange(90, this)">90 дней</button>
+            <input type="date" class="modal-input" id="reportFrom" onchange="loadFoodReport()" />
+            <span class="field-label">—</span>
+            <input type="date" class="modal-input" id="reportTo" onchange="loadFoodReport()" />
         </div>
         <div id="foodReportBody"></div>
     </div>

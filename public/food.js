@@ -115,11 +115,14 @@ function renderFoodGoalCard() {
     c.innerHTML = `<div class="widget food-goal-card" onclick="openFoodGoalModal()">
         <div class="widget-title"><span>Профиль</span><span class="widget-title-count">норма ${norm.kcal} ккал</span></div>
         <div class="food-progress-bar"><div class="food-progress-fill" style="width:${pct}%"></div></div>
-        <div class="food-macros-row">
-            <div class="food-macro"><div class="food-macro-val">${Math.round(kcal)}</div><div class="food-macro-lbl">Ккал / ${norm.kcal}</div></div>
-            <div class="food-macro"><div class="food-macro-val">${Math.round(p)}</div><div class="food-macro-lbl">Б / ${norm.protein}</div></div>
-            <div class="food-macro"><div class="food-macro-val">${Math.round(f)}</div><div class="food-macro-lbl">Ж / ${norm.fat}</div></div>
-            <div class="food-macro"><div class="food-macro-val">${Math.round(cc)}</div><div class="food-macro-lbl">У / ${norm.carbs}</div></div>
+        <div class="food-goal-body">
+            <div class="food-macros-row">
+                <div class="food-macro"><div class="food-macro-val">${Math.round(kcal)}</div><div class="food-macro-lbl">Ккал / ${norm.kcal}</div></div>
+                <div class="food-macro"><div class="food-macro-val">${Math.round(p)}</div><div class="food-macro-lbl">Б / ${norm.protein}</div></div>
+                <div class="food-macro"><div class="food-macro-val">${Math.round(f)}</div><div class="food-macro-lbl">Ж / ${norm.fat}</div></div>
+                <div class="food-macro"><div class="food-macro-val">${Math.round(cc)}</div><div class="food-macro-lbl">У / ${norm.carbs}</div></div>
+            </div>
+            <button class="food-report-fab" onclick="event.stopPropagation(); openFoodReport()">📊</button>
         </div>
     </div>`;
 }
@@ -131,6 +134,7 @@ function renderFoodDiary() {
     const todayStr = localDate(new Date());
     const label = foodDiaryDate === todayStr ? 'Сегодня' : `${days[d.getDay()]}, ${d.getDate()} ${months[d.getMonth()]}`;
     document.getElementById('foodDayLabel').textContent = label;
+    document.getElementById('foodDayPicker').value = foodDiaryDate;
 
     // Группируем по приёмам
     const meals = {};
@@ -788,14 +792,6 @@ function resetShopChecks() {
     renderShopping(foodShoppingItems.reduce((s, x) => s + (x.cost || 0), 0));
 }
 
-function openFoodDayPicker() {
-    const inp = document.getElementById('foodDayPicker');
-    inp.value = foodDiaryDate;
-    // showPicker() — нативный datepicker
-    if (inp.showPicker) inp.showPicker();
-    else inp.click();
-}
-
 function onFoodDayPicked() {
     const val = document.getElementById('foodDayPicker').value;
     if (val) {
@@ -807,31 +803,31 @@ function onFoodDayPicked() {
 // ==========================================
 // ОТЧЁТ
 // ==========================================
-let foodReportRange = 7;
-
 function openFoodReport() {
-    foodReportRange = 7;
-    document.querySelectorAll('#foodReportModal [data-v]').forEach(b =>
-        b.classList.toggle('active', parseInt(b.dataset.v) === 7));
+    const now = new Date();
+    const firstDay = new Date(now.getFullYear(), now.getMonth(), 1);
+    document.getElementById('reportFrom').value = localDate(firstDay);
+    document.getElementById('reportTo').value = localDate(now);
     document.getElementById('foodReportBody').innerHTML = '<div class="widget-empty">Загрузка...</div>';
     openModal('foodReportModal');
     loadFoodReport();
 }
 
-function pickReportRange(n, btn) {
-    foodReportRange = n;
-    document.querySelectorAll('#foodReportModal [data-v]').forEach(b => b.classList.remove('active'));
-    btn.classList.add('active');
-    loadFoodReport();
-}
-
 async function loadFoodReport() {
     const body = document.getElementById('foodReportBody');
+    const from = document.getElementById('reportFrom').value;
+    const to = document.getElementById('reportTo').value;
+    if (!from || !to) return;
+
+    // Собираем все дни от from до to
     const days = [];
-    for (let i = foodReportRange - 1; i >= 0; i--) {
-        const d = new Date(); d.setDate(d.getDate() - i);
+    const d = new Date(from + 'T12:00:00');
+    const end = new Date(to + 'T12:00:00');
+    while (d <= end) {
         days.push(localDate(d));
+        d.setDate(d.getDate() + 1);
     }
+    if (days.length > 180) return body.innerHTML = '<div class="widget-empty">Слишком большой период</div>';
 
     const allEntries = await Promise.all(days.map(day =>
         api(`/api/food/diary?day=${day}`).then(r => ({ day, entries: r.entries })).catch(() => ({ day, entries: [] }))
@@ -859,11 +855,7 @@ async function loadFoodReport() {
 
     let html = `<div class="food-report-table-wrap"><table class="food-report-table">
         <thead><tr>
-            <th>Дата</th>
-            <th>Ккал</th>
-            <th>Б</th>
-            <th>Ж</th>
-            <th>У</th>
+            <th>Дата</th><th>Ккал</th><th>Б</th><th>Ж</th><th>У</th>
         </tr></thead><tbody>`;
 
     rows.forEach(r => {
