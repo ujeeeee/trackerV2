@@ -86,8 +86,8 @@ const BACKUP_SECTIONS = {
     film: ['film_genres','film_movies'],
     tea: ['tea_groups','tea_items','tea_shops'],
     places: ['places_types','places_items'],
-food: ['food_recipe_categories','food_products','food_recipes','food_recipe_ingredients',
-       'food_plan','food_diary','food_goals'],
+    food: ['food_recipe_categories','food_products','food_recipes','food_recipe_ingredients',
+           'food_plan','food_diary','food_goals'],
 };
 
 async function collectBackup(tgId, sections) {
@@ -424,6 +424,80 @@ app.post('/api/import/discipline', authMiddleware, async (req, res) => {
         if (!error) added++;
     }
     res.json({ added, groupsAdded: areasAdded });
+});
+
+// ---------- Импорт продуктов ----------
+app.post('/api/import/food-products', authMiddleware, async (req, res) => {
+    const { text } = req.body;
+    if (!text?.trim()) return res.status(400).json({ error: 'Text required' });
+    const lines = text.split('\n').map(l => l.trim()).filter(Boolean);
+    let added = 0;
+
+    // Формат: Название | единица | ккал | Б | Ж | У | цена | за сколько
+    for (const line of lines) {
+        const parts = line.split('|').map(p => p.trim());
+        const name = parts[0];
+        if (!name) continue;
+        const unit = parts[1] || 'г';
+        const { error } = await supabase.from('food_products').insert({
+            tg_id: req.tg_id,
+            name,
+            unit,
+            kcal: Number(parts[2]) || 0,
+            protein: Number(parts[3]) || 0,
+            fat: Number(parts[4]) || 0,
+            carbs: Number(parts[5]) || 0,
+            price: Number(parts[6]) || 0,
+            price_amount: Number(parts[7]) || 100,
+        });
+        if (!error) added++;
+    }
+    res.json({ added });
+});
+
+// ---------- Импорт рецептов ----------
+app.post('/api/import/food-recipes', authMiddleware, async (req, res) => {
+    const { text } = req.body;
+    if (!text?.trim()) return res.status(400).json({ error: 'Text required' });
+    const lines = text.split('\n').map(l => l.trim()).filter(Boolean);
+    let currentCategoryId = null, added = 0, categoriesAdded = 0;
+
+    const { data: existing } = await supabase.from('food_recipe_categories').select('id, name').eq('tg_id', req.tg_id);
+    const catMap = {};
+    (existing || []).forEach(c => { catMap[c.name.toLowerCase()] = c.id; });
+
+    const { data: maxC } = await supabase.from('food_recipe_categories').select('sort_order').eq('tg_id', req.tg_id)
+        .order('sort_order', { ascending: false }).limit(1).maybeSingle();
+    let catOrder = (maxC?.sort_order || 0) + 1;
+
+    for (const line of lines) {
+        if (line.startsWith('#')) {
+            const name = line.replace(/^#\s*/, '').trim();
+            if (!name) continue;
+            const key = name.toLowerCase();
+            if (catMap[key]) currentCategoryId = catMap[key];
+            else {
+                const { data: c } = await supabase.from('food_recipe_categories').insert({
+                    tg_id: req.tg_id, name, sort_order: catOrder++,
+                }).select().single();
+                if (c) { currentCategoryId = c.id; catMap[key] = c.id; categoriesAdded++; }
+            }
+            continue;
+        }
+        // Формат: Название | порции | инструкция
+        const parts = line.split('|').map(p => p.trim());
+        const name = parts[0];
+        if (!name) continue;
+        const { error } = await supabase.from('food_recipes').insert({
+            tg_id: req.tg_id,
+            name,
+            category_id: currentCategoryId,
+            portions: Number(parts[1]) || 1,
+            instructions: parts[2] || null,
+        });
+        if (!error) added++;
+    }
+    res.json({ added, groupsAdded: categoriesAdded });
 });
 
 // ---------- START ----------

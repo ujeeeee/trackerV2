@@ -66,6 +66,16 @@ const IMPORT_CONFIG = {
         hint: 'Области — строки с <b>#</b>.<br>Формат: <code>Название цели</code>',
         placeholder: '# Спорт\nКМС по жиму\nСет по приседу\n\n# Саморазвитие\nВыучить английский',
     },
+    foodProducts: {
+        title: 'Импорт продуктов',
+        hint: 'Формат: <code>Название | единица | ккал | Б | Ж | У | цена | за сколько</code><br>Единица: г / мл / шт. Цена опциональна.',
+        placeholder: 'Курица | г | 165 | 31 | 3.6 | 0 | 350 | 1000\nРис | г | 130 | 2.7 | 0.3 | 28 | 120 | 900\nЯйцо | шт | 78 | 6 | 5 | 0.6 | 10 | 1',
+    },
+    foodRecipes: {
+        title: 'Импорт рецептов',
+        hint: 'Категории — строки с <b>#</b>.<br>Формат: <code>Название | порции | инструкция</code><br>Ингредиенты добавляются вручную.',
+        placeholder: '# Завтраки\nОвсянка | 1 | Залить молоком, варить 5 минут\nЯичница | 1 | Пожарить 3 минуты\n\n# Супы\nБорщ | 4 | Классический рецепт',
+    },
 };
 
 let importSection = null;
@@ -101,6 +111,12 @@ async function saveImport() {
         else if (importSection === 'wishlist') await loadWishlist();
         else if (importSection === 'todos') await loadTodos();
         else if (importSection === 'discipline') await loadAreas();
+        else if (importSection === 'foodProducts') {
+            const { products } = await api('/api/food/products');
+            foodProducts = products;
+            if (typeof renderProductsList === 'function') renderProductsList();
+        }
+        else if (importSection === 'foodRecipes') await loadFood();
     } catch (e) { alert('Ошибка: ' + e.message); }
 }
 
