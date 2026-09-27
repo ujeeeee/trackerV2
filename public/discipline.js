@@ -321,13 +321,22 @@ const camera = { x: 0, y: 0, scale: 1 };
 const MAX_SCALE = 3;
 let minAllowedScale = 0.3;   // динамический минимум
 
-const NODE_W = 170;
+const NODE_W = 180;
 const NODE_H = 52;
 const H_GAP = 22;
 const V_GAP = 60;
 const ROOT_GAP = 60;
 const PAD_GOALS = 6;
 const GOAL_ROW_H = 20;
+
+// Text layout
+const NAME_TOP = 12;             // верхний отступ до первой строки имени
+const NAME_LINE_H = 16;          // высота одной строки
+const NAME_MAX_LINES = 3;        // макс. строк
+const NAME_CHARS_PER_LINE = 17;  // символов в строке
+const SUB_GAP = 2;               // отступ между именем и subtitle
+const SUB_H = 14;                // высота subtitle
+const BOTTOM_PAD = 8;            // нижний отступ карточки
 
 let _collapsedAreas = new Set();
 
@@ -456,12 +465,15 @@ function computeSubtreeWidth(node) {
 }
 
 function computeNodeHeight(node) {
-    if (node.type === 'area' && node.goals && node.goals.length) {
-        if (isGoalsCollapsed(node.rawId)) return NODE_H;
-        // NODE_H + заголовок-паддинг + N строк + 6px снизу
-        return NODE_H + PAD_GOALS + node.goals.length * GOAL_ROW_H + 6;
-    }
-    return NODE_H;
+    const nameLines = wrapText(node.name, NAME_CHARS_PER_LINE, NAME_MAX_LINES).length;
+    const sub = getNodeSubtitle(node);
+    const subSpace = sub ? SUB_GAP + SUB_H : 0;
+    node.headH = Math.max(NODE_H, NAME_TOP + nameLines * NAME_LINE_H + subSpace + BOTTOM_PAD);
+
+    const showGoals = node.type === 'area' && node.goals && node.goals.length && !isGoalsCollapsed(node.rawId);
+    const goalsH = showGoals ? PAD_GOALS + node.goals.length * GOAL_ROW_H + 6 : 0;
+    node.goalsTop = showGoals ? node.headH + PAD_GOALS : 0;
+    return node.headH + goalsH;
 }
 
 function assignPositions(node, leftX, topY) {
@@ -565,32 +577,47 @@ function renderNodes(node) {
 function renderSingleNode(n) {
     const x = n.x - NODE_W / 2;
     const y = n.y - n.h / 2;
+    const totalH = n.h;
     const isCollapsed = n.type === 'area' && _collapsedAreas.has(n.rawId);
     const isGoalsCollapsedFlag = n.type === 'area' && isGoalsCollapsed(n.rawId);
     const hasGoals = n.type === 'area' && n.goals && n.goals.length > 0;
+    const showGoals = hasGoals && !isGoalsCollapsedFlag && !isCollapsed;
     const cls = ['tree-node'];
-    if (n.type === 'root') cls.push('root');
     if (isCollapsed) cls.push('collapsed');
     if (selectedNodeId === n.id) cls.push('active');
 
     const sub = getNodeSubtitle(n);
-    const totalH = n.h;
-    const showGoals = hasGoals && !isGoalsCollapsedFlag && !isCollapsed;
-
     const arrow = hasGoals ? (isGoalsCollapsedFlag ? ' ▸' : ' ▾') : '';
     const subText = sub ? `${sub}${arrow}` : '';
 
+    const nameLines = wrapText(n.name, NAME_CHARS_PER_LINE, NAME_MAX_LINES);
+    const nameBlockH = nameLines.length * NAME_LINE_H;
+
+    let nameTspans = '';
+    nameLines.forEach((line, i) => {
+        const lineY = NAME_TOP + i * NAME_LINE_H + 12;
+        nameTspans += `<tspan x="${NODE_W / 2}" y="${lineY}">${escapeSvg(line)}</tspan>`;
+    });
+
+    const subBaselineY = NAME_TOP + nameBlockH + SUB_GAP + 11;
+
     let inner = '';
-    inner += `
-        <text class="tn-name" x="${NODE_W / 2}" y="${sub ? NODE_H / 2 - 2 : NODE_H / 2 + 4}" text-anchor="middle" pointer-events="none">${escapeSvg(truncateName(n.name, 20))}</text>
-        ${subText ? `<text class="tn-sub" x="${NODE_W / 2}" y="${NODE_H / 2 + 13}" text-anchor="middle" pointer-events="none">${escapeSvg(subText)}</text>` : ''}
-        ${hasGoals ? `<rect class="tn-sub-clickable-rect" x="0" y="${NODE_H / 2 - 4}" width="${NODE_W}" height="26" fill="transparent" pointer-events="all" data-toggle-goals="${n.rawId}" />` : ''}
-    `;
+    inner += `<text class="tn-name" text-anchor="middle" pointer-events="none">${nameTspans}</text>`;
+    if (subText) {
+        inner += `<text class="tn-sub" x="${NODE_W / 2}" y="${subBaselineY}" text-anchor="middle" pointer-events="none">${escapeSvg(subText)}</text>`;
+    }
+
+    if (hasGoals) {
+        const subRectY = NAME_TOP + nameBlockH + SUB_GAP - 2;
+        const subRectH = SUB_H + 4;
+        inner += `<rect class="tn-sub-clickable-rect" x="0" y="${subRectY}" width="${NODE_W}" height="${subRectH}" fill="transparent" pointer-events="all" data-toggle-goals="${n.rawId}" />`;
+    }
 
     let goalsHtml = '';
     if (showGoals) {
+        const goalsTop = n.goalsTop || (n.headH + PAD_GOALS);
         n.goals.forEach((g, i) => {
-            const gy = NODE_H + PAD_GOALS + i * GOAL_ROW_H;
+            const gy = goalsTop + i * GOAL_ROW_H;
             const checkCls = g.done ? 'done' : '';
             goalsHtml += `
                 <g class="tn-goal-row ${checkCls}" data-drag-goal="${g.rawId}" data-drag-area="${n.rawId}">
@@ -599,7 +626,7 @@ function renderSingleNode(n) {
                         <circle class="tn-goal-check ${checkCls}" cx="16" cy="${gy + GOAL_ROW_H / 2}" r="6" />
                         <path class="tn-goal-check-mark" d="M 13 ${gy + GOAL_ROW_H / 2} L 15 ${gy + GOAL_ROW_H / 2 + 2} L 19 ${gy + GOAL_ROW_H / 2 - 2}" />
                     </g>
-                    <text class="tn-goal-name" data-edit-goal="${g.rawId}" data-goal-area="${n.rawId}" x="28" y="${gy + GOAL_ROW_H / 2 + 4}" pointer-events="all">${escapeSvg(truncateName(g.name, 18))}</text>
+                    <text class="tn-goal-name" data-edit-goal="${g.rawId}" data-goal-area="${n.rawId}" x="28" y="${gy + GOAL_ROW_H / 2 + 4}" pointer-events="all">${escapeSvg(truncateName(g.name, 22))}</text>
                 </g>
             `;
         });
@@ -1358,4 +1385,204 @@ async function moveGoal(direction) {
     } catch (e) { alert('Ошибка: ' + e.message); }
 
     
+}
+
+function wrapText(text, maxChars, maxLines = 3) {
+    const words = String(text || '').split(/\s+/).filter(Boolean);
+    if (!words.length) return [''];
+    const lines = [];
+    let cur = '';
+    for (const w of words) {
+        const cand = cur ? cur + ' ' + w : w;
+        if (cand.length <= maxChars) { cur = cand; continue; }
+        if (cur) lines.push(cur);
+        cur = w;
+        while (cur.length > maxChars) {
+            lines.push(cur.slice(0, maxChars));
+            cur = cur.slice(maxChars);
+        }
+    }
+    if (cur) lines.push(cur);
+
+    if (lines.length > maxLines) {
+        lines.length = maxLines;
+        lines[maxLines - 1] = lines[maxLines - 1].slice(0, maxChars - 1) + '…';
+    }
+    return lines;
+}
+
+// ==========================================
+// ЭКСПОРТ ДЕРЕВА / ВЕТКИ В PNG
+// ==========================================
+function collectSubtreeIds(root) {
+    const ids = new Set();
+    (function walk(node) {
+        ids.add(node.id);
+        const isCollapsed = _collapsedAreas.has(node.rawId) && node.type === 'area';
+        if (!isCollapsed) node.children.forEach(walk);
+    })(root);
+    return ids;
+}
+
+function renderSubtreeEdges(node, idSet) {
+    if (node.type === 'root') {
+        let html = '';
+        node.children.forEach(c => { if (idSet.has(c.id)) html += renderSubtreeEdges(c, idSet); });
+        return html;
+    }
+    const isCollapsed = _collapsedAreas.has(node.rawId) && node.type === 'area';
+    if (isCollapsed || !node.children.length) return '';
+    let html = '';
+    node.children.forEach(c => {
+        if (!idSet.has(c.id)) return;
+        const x1 = node.x;
+        const y1 = node.y + (node.h || NODE_H) / 2;
+        const x2 = c.x;
+        const y2 = c.y - (c.h || NODE_H) / 2;
+        const midY = (y1 + y2) / 2;
+        html += `<path class="tree-edge" d="M ${x1} ${y1} C ${x1} ${midY}, ${x2} ${midY}, ${x2} ${y2}" />`;
+        html += renderSubtreeEdges(c, idSet);
+    });
+    return html;
+}
+
+function renderSubtreeNodes(node, idSet) {
+    let html = '';
+    if (node.type !== 'root' && idSet.has(node.id)) {
+        html += renderSingleNode(node);
+    }
+    const isCollapsed = _collapsedAreas.has(node.rawId) && node.type === 'area';
+    if (!isCollapsed) {
+        node.children.forEach(c => { if (idSet.has(c.id)) html += renderSubtreeNodes(c, idSet); });
+    }
+    return html;
+}
+
+async function exportTreeImage() {
+    if (!treeRoot) return;
+
+    layoutTree();
+    updateMinScale();
+
+    let exportRoot = treeRoot;
+    let exportLabel = 'all';
+    if (selectedNodeId && treeNodesById[selectedNodeId]) {
+        exportRoot = treeNodesById[selectedNodeId];
+        exportLabel = exportRoot.name.replace(/[^a-zA-Zа-яА-Я0-9]/g, '_').slice(0, 30) || 'branch';
+    }
+
+    const subtreeIds = collectSubtreeIds(exportRoot);
+
+    let minX = Infinity, minY = Infinity, maxX = -Infinity, maxY = -Infinity;
+    Object.values(treeNodesById).forEach(n => {
+        if (!subtreeIds.has(n.id)) return;
+        const h = n.h || NODE_H;
+        minX = Math.min(minX, n.x - NODE_W / 2);
+        minY = Math.min(minY, n.y - h / 2);
+        maxX = Math.max(maxX, n.x + NODE_W / 2);
+        maxY = Math.max(maxY, n.y + h / 2);
+    });
+    if (!isFinite(minX)) return alert('Нечего экспортировать');
+
+    const PAD = 40;
+    const W = Math.ceil(maxX - minX + PAD * 2);
+    const H = Math.ceil(maxY - minY + PAD * 2);
+    const vbX = minX - PAD;
+    const vbY = minY - PAD;
+
+    const svgNS = 'http://www.w3.org/2000/svg';
+    const outSvg = document.createElementNS(svgNS, 'svg');
+    outSvg.setAttribute('xmlns', svgNS);
+    outSvg.setAttribute('width', W);
+    outSvg.setAttribute('height', H);
+    outSvg.setAttribute('viewBox', `${vbX} ${vbY} ${W} ${H}`);
+
+    const theme = document.documentElement.getAttribute('data-theme') || 'dark';
+    const cs = getComputedStyle(document.documentElement);
+    const bg = theme === 'light' ? '#ebebef' : '#0a0809';
+    const success = cs.getPropertyValue('--success').trim() || '#32d74b';
+    const textColor = theme === 'light' ? '#1c1c1e' : '#f5f5f7';
+    const textTertiary = theme === 'light' ? '#8e8e93' : '#5a5a5f';
+    const cardBg = theme === 'light' ? 'rgba(245,245,248,0.95)' : 'rgba(38,38,44,0.95)';
+    const cardBorder = theme === 'light' ? 'rgba(0,0,0,0.08)' : 'rgba(255,255,255,0.08)';
+    const edgeColor = theme === 'light' ? 'rgba(0,0,0,0.15)' : 'rgba(255,255,255,0.15)';
+
+    const bgRect = document.createElementNS(svgNS, 'rect');
+    bgRect.setAttribute('x', vbX);
+    bgRect.setAttribute('y', vbY);
+    bgRect.setAttribute('width', W);
+    bgRect.setAttribute('height', H);
+    bgRect.setAttribute('fill', bg);
+    outSvg.appendChild(bgRect);
+
+    const style = document.createElementNS(svgNS, 'style');
+    style.textContent = `
+        .tree-edge { stroke: ${edgeColor}; stroke-width: 1.5; fill: none; }
+        .tn-rect { fill: ${cardBg}; stroke: ${cardBorder}; stroke-width: 1; }
+        .tn-name { fill: ${textColor}; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; font-size: 13px; font-weight: 600; }
+        .tn-sub { fill: ${textTertiary}; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; font-size: 10px; font-weight: 500; }
+        .tn-goal-name { fill: ${textColor}; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; font-size: 11px; font-weight: 500; }
+        .tn-goal-check { fill: transparent; stroke: ${textTertiary}; stroke-width: 1.4; }
+        .tn-goal-row.done .tn-goal-check { fill: ${success}; stroke: ${success}; }
+        .tn-goal-check-mark { fill: none; stroke: white; stroke-width: 1.8; stroke-linecap: round; stroke-linejoin: round; display: none; }
+        .tn-goal-row.done .tn-goal-check-mark { display: block; }
+        .tn-goal-row.done .tn-goal-name { fill: ${textTertiary}; text-decoration: line-through; }
+        .tn-sub-clickable-rect { display: none; }
+    `;
+    outSvg.appendChild(style);
+
+    const savedSelected = selectedNodeId;
+    selectedNodeId = null;
+
+    let content = renderSubtreeEdges(exportRoot, subtreeIds) + renderSubtreeNodes(exportRoot, subtreeIds);
+    // Убираем прозрачные rect для кликов
+    content = content.replace(/<rect[^>]*pointer-events="all"[^>]*\/>/g, '');
+
+    selectedNodeId = savedSelected;
+
+    const g = document.createElementNS(svgNS, 'g');
+    g.innerHTML = content;
+    outSvg.appendChild(g);
+
+    const svgString = new XMLSerializer().serializeToString(outSvg);
+    const svgBlob = new Blob([svgString], { type: 'image/svg+xml;charset=utf-8' });
+    const url = URL.createObjectURL(svgBlob);
+
+    const scale = 2;
+    const canvas = document.createElement('canvas');
+    canvas.width = W * scale;
+    canvas.height = H * scale;
+    const ctx = canvas.getContext('2d');
+    ctx.scale(scale, scale);
+
+    await new Promise((resolve, reject) => {
+        const img = new Image();
+        img.onload = () => {
+            ctx.drawImage(img, 0, 0, W, H);
+            URL.revokeObjectURL(url);
+            resolve();
+        };
+        img.onerror = reject;
+        img.src = url;
+    });
+
+    canvas.toBlob(async blob => {
+        const fileName = `tree-${exportLabel}-${localDate(new Date())}.png`;
+        const file = new File([blob], fileName, { type: 'image/png' });
+
+        if (navigator.canShare && navigator.canShare({ files: [file] })) {
+            try {
+                await navigator.share({ files: [file], title: 'Дерево целей' });
+                return;
+            } catch (e) {}
+        }
+
+        const a = document.createElement('a');
+        a.href = URL.createObjectURL(blob);
+        a.download = fileName;
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+        setTimeout(() => URL.revokeObjectURL(a.href), 1000);
+    }, 'image/png');
 }
