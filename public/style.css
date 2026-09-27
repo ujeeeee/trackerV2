@@ -1780,7 +1780,7 @@ textarea.modal-input {
 /* Controls */
 .tree-controls {
     position: absolute;
-    top: 35px;
+    top: 55px;
     right: 10px;
     display: flex;
     gap: 4px;
