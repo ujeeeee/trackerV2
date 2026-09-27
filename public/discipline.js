@@ -325,6 +325,7 @@ const NODE_W = 140;
 const NODE_H = 52;
 const H_GAP = 22;
 const V_GAP = 60;
+const ROOT_GAP = 60;   // расстояние между деревьями
 
 let _collapsedAreas = new Set();
 
@@ -416,11 +417,12 @@ function computeSubtreeWidth(node) {
         node.subtreeWidth = NODE_W;
         return;
     }
+    const gap = (node.type === 'root') ? ROOT_GAP : H_GAP;
     let total = 0;
     node.children.forEach((c, i) => {
         computeSubtreeWidth(c);
         total += c.subtreeWidth;
-        if (i < node.children.length - 1) total += H_GAP;
+        if (i < node.children.length - 1) total += gap;
     });
     node.subtreeWidth = Math.max(NODE_W, total);
 }
@@ -432,11 +434,12 @@ function assignPositions(node, leftX, topY) {
     const isCollapsed = _collapsedAreas.has(node.rawId) && node.type === 'area';
     if (!node.children.length || isCollapsed) return;
 
-    const totalChildrenW = node.children.reduce((s, c, i) => s + c.subtreeWidth + (i ? H_GAP : 0), 0);
+    const gap = (node.type === 'root') ? ROOT_GAP : H_GAP;
+    const totalChildrenW = node.children.reduce((s, c, i) => s + c.subtreeWidth + (i ? gap : 0), 0);
     let cursor = leftX + (node.subtreeWidth - totalChildrenW) / 2;
     node.children.forEach(c => {
         assignPositions(c, cursor, topY + NODE_H + V_GAP);
-        cursor += c.subtreeWidth + H_GAP;
+        cursor += c.subtreeWidth + gap;
     });
 }
 
@@ -478,13 +481,22 @@ function renderTree() {
     updateActionsBar();
 
     // Первый рендер — центрируем
+    // Первый рендер — подгоняем
     if (!camera._init) {
         camera._init = true;
-        requestAnimationFrame(() => fitTree());
+        selectedNodeId = null;
+        updateBreadcrumb();
+        updateActionsBar();
+        setTimeout(() => fitTree(), 80);
     }
 }
 
 function renderEdges(node) {
+    if (node.type === 'root') {
+        let html = '';
+        node.children.forEach(c => { html += renderEdges(c); });
+        return html;
+    }
     const isCollapsed = _collapsedAreas.has(node.rawId) && node.type === 'area';
     if (isCollapsed || !node.children.length) return '';
     let html = '';
@@ -501,7 +513,10 @@ function renderEdges(node) {
 }
 
 function renderNodes(node) {
-    let html = renderSingleNode(node);
+    let html = '';
+    if (node.type !== 'root') {
+        html = renderSingleNode(node);
+    }
     const isCollapsed = _collapsedAreas.has(node.rawId) && node.type === 'area';
     if (!isCollapsed) {
         node.children.forEach(c => { html += renderNodes(c); });
@@ -840,24 +855,28 @@ function findNodeEl(el) {
 function updateActionsBar() {
     const bar = document.getElementById('treeActions');
     if (!bar) return;
+
+    const btnBranch = document.getElementById('treeActionAddBranch');
+    const btnGoal = document.getElementById('treeActionAddGoal');
+    const btnEdit = document.getElementById('treeActionEdit');
+    const btnDel = document.getElementById('treeActionDelete');
+
     if (!selectedNodeId) {
-        bar.classList.remove('visible');
+        bar.classList.add('visible');
+        btnBranch.textContent = '+ Дерево';
+        btnBranch.style.display = 'block';
+        btnGoal.style.display = 'none';
+        btnEdit.style.display = 'none';
+        btnDel.style.display = 'none';
         return;
     }
     const n = treeNodesById[selectedNodeId];
     if (!n) { bar.classList.remove('visible'); return; }
 
     bar.classList.add('visible');
-    const btnBranch = document.getElementById('treeActionAddBranch');
-    const btnGoal = document.getElementById('treeActionAddGoal');
-    const btnEdit = document.getElementById('treeActionEdit');
-    const btnDel = document.getElementById('treeActionDelete');
-
-    // Ветку можно добавлять в root и в любую area
+    btnBranch.textContent = '+ Ветка';
     btnBranch.style.display = (n.type === 'root' || n.type === 'area') ? 'block' : 'none';
-    // Цель можно добавлять только в area
     btnGoal.style.display = (n.type === 'area') ? 'block' : 'none';
-    // Редактировать — всё кроме root
     btnEdit.style.display = (n.type !== 'root') ? 'block' : 'none';
     btnDel.style.display = (n.type !== 'root') ? 'block' : 'none';
 }
@@ -901,10 +920,8 @@ async function toggleGoalDone(n) {
 }
 
 function treeAddBranch() {
-    if (!selectedNodeId) return;
-    const n = treeNodesById[selectedNodeId];
-    if (!n) return;
-    const parentId = (n.type === 'area') ? n.rawId : null;
+    const n = selectedNodeId ? treeNodesById[selectedNodeId] : null;
+    const parentId = (n && n.type === 'area') ? n.rawId : null;
     openAreaModal(null, parentId);
 }
 
@@ -1092,7 +1109,17 @@ const _origSwitchSubTab = window.switchSubTab;
 window.switchSubTab = function(parent, tab, btn) {
     if (typeof _origSwitchSubTab === 'function') _origSwitchSubTab(parent, tab, btn);
     if (parent === 'discipline' && tab === 'goals') {
-        setTimeout(() => { initTreePointer(); renderTree(); }, 50);
+        setTimeout(() => {
+            initTreePointer();
+            renderTree();
+            // Автовыбор корня + автоподгонка
+            if (!selectedNodeId) {
+                selectedNodeId = 'root';
+                updateBreadcrumb();
+                updateActionsBar();
+            }
+            fitTree();
+        }, 80);
     }
 };
 
