@@ -344,7 +344,7 @@ function renderAreaNode(area, depth) {
     const done = goals.filter(g => g.status === 'done').length;
     const prog = goals.length ? `${done}/${goals.length}` : '';
     const isOpen = !isCollapsed('discAreas', area.id);
-    const indent = depth * 16;
+    const indent = depth * 3;
 
     return `<div class="area-card area-depth-${depth} ${isOpen ? 'open' : ''}"
                 data-id="${area.id}"

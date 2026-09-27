@@ -1710,22 +1710,42 @@ textarea.modal-input {
 .area-card.area-depth-1 {
     background: var(--bg-secondary);
     border-color: transparent;
-    border-radius: 14px;
+    border-radius: 12px;
+    padding: 10px 12px;
+    margin-bottom: 8px;
 }
 .area-card.area-depth-2 {
     background: transparent;
     border: 1px dashed var(--glass-border);
-    border-radius: 12px;
+    border-radius: 10px;
+    padding: 8px 10px;
+    margin-bottom: 6px;
 }
 .area-card.area-depth-3,
-.area-card.area-depth-4 {
+.area-card.area-depth-4,
+.area-card.area-depth-5 {
     background: transparent;
     border: none;
     padding: 6px 0 0;
     border-radius: 0;
+    margin-bottom: 4px;
 }
+
+/* Заголовки вложенных областей — компактнее */
+.area-card.area-depth-1 > .group-header { margin-bottom: 6px; }
+.area-card.area-depth-2 > .group-header { margin-bottom: 4px; }
+.area-card.area-depth-3 > .group-header,
+.area-card.area-depth-4 > .group-header,
+.area-card.area-depth-5 > .group-header { margin-bottom: 2px; }
+
 .area-card.area-depth-1 > .group-header .group-name,
 .area-card.area-depth-2 > .group-header .group-name {
     font-size: 14px;
     font-weight: 600;
+}
+.area-card.area-depth-3 > .group-header .group-name,
+.area-card.area-depth-4 > .group-header .group-name,
+.area-card.area-depth-5 > .group-header .group-name {
+    font-size: 13px;
+    font-weight: 500;
 }
