@@ -318,8 +318,8 @@ let lastFocusedNodeId = null;
 let cameraStack = [];  // история навигации
 
 const camera = { x: 0, y: 0, scale: 1 };
-const MIN_SCALE = 0.3;
 const MAX_SCALE = 3;
+let minAllowedScale = 0.3;   // динамический минимум
 
 const NODE_W = 140;
 const NODE_H = 52;
@@ -394,8 +394,9 @@ function buildTreeData() {
     // Цели к областям
     goalsFlat.forEach(g => {
         const node = treeNodesById['g:' + g.id];
-        if (g.area_id && treeNodesById['a:' + g.area_id]) {
-            treeNodesById['a:' + g.area_id].children.push(node);
+        const areaNode = g.area_id ? treeNodesById['a:' + g.area_id] : null;
+        if (areaNode) {
+            areaNode.children.push(node);
         } else {
             root.children.push(node);
         }
@@ -457,6 +458,7 @@ function layoutTree() {
 function renderTree() {
     if (!treeRoot) return;
     layoutTree();
+    updateMinScale();
 
     const svg = document.getElementById('treeSvg');
     if (!svg) return;
@@ -524,13 +526,13 @@ function renderSingleNode(n) {
         inner += `
             <circle class="tn-check" cx="16" cy="${NODE_H / 2}" r="8" />
             <path class="tn-check-mark" d="M 12 ${NODE_H / 2} L 15 ${NODE_H / 2 + 3} L 20 ${NODE_H / 2 - 3}" />
-            <text class="tn-name" x="32" y="${NODE_H / 2 - 2}">${escapeSvg(n.name)}</text>
-            ${sub ? `<text class="tn-sub" x="32" y="${NODE_H / 2 + 13}">${escapeSvg(sub)}</text>` : ''}
+            <text class="tn-name" x="32" y="${NODE_H / 2 - 2}">${escapeSvg(truncateName(n.name, 13))}</text>
+            ${sub ? `<text class="tn-sub" x="32" y="${NODE_H / 2 + 13}">${escapeSvg(truncateName(sub, 16))}</text>` : ''}
         `;
     } else {
         inner += `
-            <text class="tn-name" x="${NODE_W / 2}" y="${sub ? NODE_H / 2 - 2 : NODE_H / 2 + 4}" text-anchor="middle">${escapeSvg(n.name)}</text>
-            ${sub ? `<text class="tn-sub" x="${NODE_W / 2}" y="${NODE_H / 2 + 13}" text-anchor="middle">${escapeSvg(sub)}</text>` : ''}
+            <text class="tn-name" x="${NODE_W / 2}" y="${sub ? NODE_H / 2 - 2 : NODE_H / 2 + 4}" text-anchor="middle">${escapeSvg(truncateName(n.name, 16))}</text>
+            ${sub ? `<text class="tn-sub" x="${NODE_W / 2}" y="${NODE_H / 2 + 13}" text-anchor="middle">${escapeSvg(truncateName(sub, 16))}</text>` : ''}
         `;
     }
 
@@ -568,6 +570,12 @@ function plural(n, one, few, many) {
 
 function escapeSvg(s) {
     return String(s || '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+}
+
+function truncateName(s, maxChars) {
+    s = String(s || '');
+    if (s.length <= maxChars) return s;
+    return s.slice(0, maxChars - 1) + '…';
 }
 
 // ==========================================
@@ -631,10 +639,10 @@ function fitTree() {
     const h = svg.clientHeight;
 
     const bbox = computeTreeBBox();
-    const PAD = 60;
+    const PAD = 5;
     const sx = (w - PAD * 2) / Math.max(1, bbox.w);
     const sy = (h - PAD * 2) / Math.max(1, bbox.h);
-    const s = Math.max(MIN_SCALE, Math.min(MAX_SCALE, Math.min(sx, sy)));
+    const s = Math.min(MAX_SCALE, Math.min(sx, sy));
     const target = {
         x: w / 2 - (bbox.x + bbox.w / 2) * s,
         y: h / 2 - (bbox.y + bbox.h / 2) * s,
@@ -657,8 +665,18 @@ function computeTreeBBox() {
     return { x: minX, y: minY, w: maxX - minX, h: maxY - minY };
 }
 
+function updateMinScale() {
+    const svg = document.getElementById('treeSvg');
+    if (!svg || !treeRoot) return;
+    const bbox = computeTreeBBox();
+    const PAD = 5;
+    const sx = (svg.clientWidth - PAD * 2) / Math.max(1, bbox.w);
+    const sy = (svg.clientHeight - PAD * 2) / Math.max(1, bbox.h);
+    minAllowedScale = Math.min(MAX_SCALE, sx, sy);
+}
+
 function zoomAt(px, py, factor) {
-    const newScale = Math.max(MIN_SCALE, Math.min(MAX_SCALE, camera.scale * factor));
+    const newScale = Math.max(minAllowedScale, Math.min(MAX_SCALE, camera.scale * factor));
     const realFactor = newScale / camera.scale;
     camera.x = px - (px - camera.x) * realFactor;
     camera.y = py - (py - camera.y) * realFactor;
@@ -737,7 +755,7 @@ function initTreePointer() {
             const pts = [..._pointers.values()];
             const dist = Math.hypot(pts[0].x - pts[1].x, pts[0].y - pts[1].y);
             const factor = dist / _pinchStart.dist;
-            const newScale = Math.max(MIN_SCALE, Math.min(MAX_SCALE, _pinchStart.camScale * factor));
+            const newScale = Math.max(minAllowedScale, Math.min(MAX_SCALE, _pinchStart.camScale * factor));
             const realFactor = newScale / _pinchStart.camScale;
             const midX = (pts[0].x + pts[1].x) / 2 - rect.left;
             const midY = (pts[0].y + pts[1].y) / 2 - rect.top;

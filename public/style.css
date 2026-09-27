@@ -1734,9 +1734,9 @@ textarea.modal-input {
 /* Breadcrumb */
 .tree-breadcrumb {
     position: absolute;
-    top: 6px;
+    top: 21px;
     left: 10px;
-    right: 62px;
+    right: 10px;
     display: flex;
     flex-wrap: nowrap;
     gap: 2px;
