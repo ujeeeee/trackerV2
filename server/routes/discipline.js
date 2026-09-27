@@ -56,7 +56,8 @@ router.delete('/habits/:id', authMiddleware, async (req, res) => {
 
 router.post('/habits/:id/toggle', authMiddleware, async (req, res) => {
     const d = req.body.date || localDate(new Date());
-    if (d > localDate(new Date())) return res.status(400).json({ error: 'Future not allowed' });
+    const _tomorrow = new Date(); _tomorrow.setDate(_tomorrow.getDate() + 1);
+    if (d > localDate(_tomorrow)) return res.status(400).json({ error: 'Future not allowed' });
 
     const { data: existing } = await supabase.from('disc_habit_logs').select('id')
         .eq('habit_id', req.params.id).eq('tg_id', req.tg_id).eq('date', d).maybeSingle();
