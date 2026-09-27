@@ -307,134 +307,640 @@ async function deleteTodo() {
 }
 
 // ==========================================
-// ===== DISCIPLINE: ЦЕЛИ (дерево областей) =====
+// ===== DISCIPLINE: ЦЕЛИ — ИНТЕРАКТИВНОЕ ДЕРЕВО =====
 // ==========================================
-let areasFlat = [];       // [{id, name, parent_id, ...}]
-let goalsFlat = [];       // [{id, name, area_id, status}]
-let areaCtx = { id: null, parentId: null };
-let goalCtx = { id: null, areaId: null };
+let areasFlat = [];
+let goalsFlat = [];
+let treeRoot = null;
+let treeNodesById = {};
+let selectedNodeId = null;
+let lastFocusedNodeId = null;
+let cameraStack = [];  // история навигации
 
+const camera = { x: 0, y: 0, scale: 1 };
+const MIN_SCALE = 0.3;
+const MAX_SCALE = 3;
+
+const NODE_W = 140;
+const NODE_H = 52;
+const H_GAP = 22;
+const V_GAP = 60;
+
+let _collapsedAreas = new Set();
+
+// ==========================================
+// ЗАГРУЗКА
+// ==========================================
 async function loadAreas() {
     try {
         const { areas, goals } = await api('/api/disc/areas');
         areasFlat = areas;
         goalsFlat = goals;
-        renderAreas();
+        _collapsedAreas = collapsed['discAreas'] || new Set();
+        buildTreeData();
+        renderTree();
     } catch (e) { console.error(e); }
 }
 
-function renderAreas() {
-    const c = document.getElementById('areasList');
-    if (!areasFlat.length && !goalsFlat.length) {
-        c.innerHTML = `<div class="empty-state">Нет областей. Нажми +</div>`;
+function buildTreeData() {
+    treeNodesById = {};
+
+    // Виртуальный корень
+    const root = {
+        id: 'root',
+        type: 'root',
+        name: 'МОИ ЦЕЛИ',
+        children: [],
+    };
+    treeNodesById['root'] = root;
+
+    // Области
+    areasFlat.forEach(a => {
+        const id = 'a:' + a.id;
+        treeNodesById[id] = {
+            id,
+            rawId: a.id,
+            type: 'area',
+            name: a.name,
+            parentAreaId: a.parent_id,
+            children: [],
+        };
+    });
+
+    // Цели
+    goalsFlat.forEach(g => {
+        const id = 'g:' + g.id;
+        treeNodesById[id] = {
+            id,
+            rawId: g.id,
+            type: 'goal',
+            name: g.name,
+            done: g.status === 'done',
+            areaId: g.area_id,
+            children: [],
+        };
+    });
+
+    // Связываем области
+    areasFlat.forEach(a => {
+        const node = treeNodesById['a:' + a.id];
+        if (a.parent_id && treeNodesById['a:' + a.parent_id]) {
+            treeNodesById['a:' + a.parent_id].children.push(node);
+        } else {
+            root.children.push(node);
+        }
+    });
+
+    // Цели к областям
+    goalsFlat.forEach(g => {
+        const node = treeNodesById['g:' + g.id];
+        if (g.area_id && treeNodesById['a:' + g.area_id]) {
+            treeNodesById['a:' + g.area_id].children.push(node);
+        } else {
+            root.children.push(node);
+        }
+    });
+
+    treeRoot = root;
+}
+
+// ==========================================
+// LAYOUT
+// ==========================================
+function computeSubtreeWidth(node) {
+    const isCollapsed = _collapsedAreas.has(node.rawId) && node.type === 'area';
+    const hasVisibleChildren = node.children.length > 0 && !isCollapsed;
+
+    if (!hasVisibleChildren) {
+        node.subtreeWidth = NODE_W;
         return;
     }
-    c.innerHTML = renderAreaChildren(null, 0) + renderOrphanGoals();
-    bindAreaSortable();
-}
-
-function renderAreaChildren(parentId, depth) {
-    const kids = areasFlat.filter(a => (a.parent_id || null) === parentId);
-    return kids.map(a => renderAreaNode(a, depth)).join('');
-}
-
-function renderAreaNode(area, depth) {
-    const kids = areasFlat.filter(x => x.parent_id === area.id);
-    const goals = goalsFlat.filter(g => g.area_id === area.id);
-    const done = goals.filter(g => g.status === 'done').length;
-    const prog = goals.length ? `${done}/${goals.length}` : '';
-    const isOpen = !isCollapsed('discAreas', area.id);
-    const indent = depth * 4;
-
-    return `<div class="area-card area-depth-${depth} ${isOpen ? 'open' : ''}"
-                data-id="${area.id}"
-                style="margin-left:${indent}px;">
-        <div class="group-header">
-            <span class="group-arrow" onclick="event.stopPropagation(); toggleCollapse('discAreas', ${area.id}); renderAreas();">▶</span>
-            <div class="group-name clickable" onclick="openAreaModal(${area.id})">${escapeHtml(area.name)}</div>
-            ${prog ? `<div class="group-progress">${prog}</div>` : ''}
-            <button class="btn-icon-add" title="Добавить подобласть" onclick="openAreaModal(null, ${area.id})">+</button>
-            <button class="btn-icon-add" title="Добавить цель" onclick="openGoalModal(null, ${area.id})">✓</button>
-        </div>
-        <div class="group-body">
-            ${goals.map(g => goalHTML(g)).join('')}
-            ${renderAreaChildren(area.id, depth + 1)}
-        </div>
-    </div>`;
-}
-
-function renderOrphanGoals() {
-    const orphans = goalsFlat.filter(g => !g.area_id);
-    if (!orphans.length) return '';
-    return `<div class="area-card">
-        <div class="group-header"><div class="group-name">Без области</div>
-            <button class="btn-icon-add" onclick="openGoalModal(null, null)">+</button>
-        </div>
-        <div class="group-body">${orphans.map(g => goalHTML(g)).join('')}</div>
-    </div>`;
-}
-
-function goalHTML(g) {
-    return `<div class="list-item" data-goal-id="${g.id}" onclick="openGoalModal(${g.id}, ${g.area_id || 'null'})">
-        <div class="item-check ${g.status === 'done' ? 'done' : ''}" onclick="event.stopPropagation(); toggleGoal(${g.id}, '${g.status}')">✓</div>
-        <div class="item-info"><div class="item-title ${g.status === 'done' ? 'done' : ''}">${escapeHtml(g.name)}</div></div>
-        <button class="area-delete" onclick="event.stopPropagation(); deleteGoal(${g.id})">✕</button>
-    </div>`;
-}
-
-function bindAreaSortable() {
-    const c = document.getElementById('areasList');
-    if (!c || !window.Sortable) return;
-
-    // Пересоздаём sortable для каждого group-body (цели внутри)
-    c.querySelectorAll('.group-body').forEach(body => {
-        if (body._sortable) body._sortable.destroy();
-        body._sortable = null;
+    let total = 0;
+    node.children.forEach((c, i) => {
+        computeSubtreeWidth(c);
+        total += c.subtreeWidth;
+        if (i < node.children.length - 1) total += H_GAP;
     });
+    node.subtreeWidth = Math.max(NODE_W, total);
+}
 
-    // Sortable для корневых областей
-    if (c._sortable) c._sortable.destroy();
-    c._sortable = new Sortable(c, {
-        animation: 150, delay: 250, delayOnTouchOnly: true,
-        draggable: ':scope > .area-card[data-id]',
-        onEnd: async () => {
-            const ids = [...c.querySelectorAll(':scope > .area-card[data-id]')]
-                .map(el => parseInt(el.dataset.id)).filter(Boolean);
-            if (ids.length) await api('/api/reorder', 'POST', { table: 'disc_areas', ids });
+function assignPositions(node, leftX, topY) {
+    node.x = leftX + node.subtreeWidth / 2;
+    node.y = topY + NODE_H / 2;
+
+    const isCollapsed = _collapsedAreas.has(node.rawId) && node.type === 'area';
+    if (!node.children.length || isCollapsed) return;
+
+    const totalChildrenW = node.children.reduce((s, c, i) => s + c.subtreeWidth + (i ? H_GAP : 0), 0);
+    let cursor = leftX + (node.subtreeWidth - totalChildrenW) / 2;
+    node.children.forEach(c => {
+        assignPositions(c, cursor, topY + NODE_H + V_GAP);
+        cursor += c.subtreeWidth + H_GAP;
+    });
+}
+
+function layoutTree() {
+    computeSubtreeWidth(treeRoot);
+    assignPositions(treeRoot, 0, 0);
+
+    // Нормализуем: корень в (0, 0)
+    const dx = treeRoot.x;
+    const dy = treeRoot.y;
+    Object.values(treeNodesById).forEach(n => {
+        if (n.x !== undefined) { n.x -= dx; n.y -= dy; }
+    });
+}
+
+// ==========================================
+// РЕНДЕР
+// ==========================================
+function renderTree() {
+    if (!treeRoot) return;
+    layoutTree();
+
+    const svg = document.getElementById('treeSvg');
+    if (!svg) return;
+
+    let html = '<g id="treeCamera">';
+
+    // Рёбра
+    html += renderEdges(treeRoot);
+    // Узлы
+    html += renderNodes(treeRoot);
+
+    html += '</g>';
+    svg.innerHTML = html;
+
+    applyCamera();
+    updateBreadcrumb();
+    updateActionsBar();
+
+    // Первый рендер — центрируем
+    if (!camera._init) {
+        camera._init = true;
+        requestAnimationFrame(() => fitTree());
+    }
+}
+
+function renderEdges(node) {
+    const isCollapsed = _collapsedAreas.has(node.rawId) && node.type === 'area';
+    if (isCollapsed || !node.children.length) return '';
+    let html = '';
+    node.children.forEach(c => {
+        const x1 = node.x;
+        const y1 = node.y + NODE_H / 2;
+        const x2 = c.x;
+        const y2 = c.y - NODE_H / 2;
+        const midY = (y1 + y2) / 2;
+        html += `<path class="tree-edge" d="M ${x1} ${y1} C ${x1} ${midY}, ${x2} ${midY}, ${x2} ${y2}" />`;
+        html += renderEdges(c);
+    });
+    return html;
+}
+
+function renderNodes(node) {
+    let html = renderSingleNode(node);
+    const isCollapsed = _collapsedAreas.has(node.rawId) && node.type === 'area';
+    if (!isCollapsed) {
+        node.children.forEach(c => { html += renderNodes(c); });
+    }
+    return html;
+}
+
+function renderSingleNode(n) {
+    const x = n.x - NODE_W / 2;
+    const y = n.y - NODE_H / 2;
+    const isCollapsed = n.type === 'area' && _collapsedAreas.has(n.rawId);
+    const cls = ['tree-node'];
+    if (n.type === 'root') cls.push('root');
+    if (n.done) cls.push('done');
+    if (isCollapsed) cls.push('collapsed');
+    if (selectedNodeId === n.id) cls.push('active');
+
+    const sub = getNodeSubtitle(n);
+
+    let inner = '';
+    if (n.type === 'goal') {
+        inner += `
+            <circle class="tn-check" cx="16" cy="${NODE_H / 2}" r="8" />
+            <path class="tn-check-mark" d="M 12 ${NODE_H / 2} L 15 ${NODE_H / 2 + 3} L 20 ${NODE_H / 2 - 3}" />
+            <text class="tn-name" x="32" y="${NODE_H / 2 - 2}">${escapeSvg(n.name)}</text>
+            ${sub ? `<text class="tn-sub" x="32" y="${NODE_H / 2 + 13}">${escapeSvg(sub)}</text>` : ''}
+        `;
+    } else {
+        inner += `
+            <text class="tn-name" x="${NODE_W / 2}" y="${sub ? NODE_H / 2 - 2 : NODE_H / 2 + 4}" text-anchor="middle">${escapeSvg(n.name)}</text>
+            ${sub ? `<text class="tn-sub" x="${NODE_W / 2}" y="${NODE_H / 2 + 13}" text-anchor="middle">${escapeSvg(sub)}</text>` : ''}
+        `;
+    }
+
+    return `<g class="${cls.join(' ')}" data-node-id="${n.id}" transform="translate(${x} ${y})">
+        <rect class="tn-rect" width="${NODE_W}" height="${NODE_H}" rx="12" />
+        ${inner}
+    </g>`;
+}
+
+function getNodeSubtitle(n) {
+    if (n.type === 'root') {
+        return `${n.children.length} ${plural(n.children.length, 'ветка', 'ветки', 'веток')}`;
+    }
+    if (n.type === 'area') {
+        const count = countGoals(n);
+        if (n.children.length === 0) return 'пусто';
+        return `${count} ${plural(count, 'цель', 'цели', 'целей')}`;
+    }
+    return '';
+}
+
+function countGoals(node) {
+    let c = 0;
+    if (node.type === 'goal') c++;
+    (node.children || []).forEach(ch => { c += countGoals(ch); });
+    return c;
+}
+
+function plural(n, one, few, many) {
+    const m10 = n % 10, m100 = n % 100;
+    if (m10 === 1 && m100 !== 11) return one;
+    if (m10 >= 2 && m10 <= 4 && (m100 < 10 || m100 >= 20)) return few;
+    return many;
+}
+
+function escapeSvg(s) {
+    return String(s || '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+}
+
+// ==========================================
+// CAMERA
+// ==========================================
+function applyCamera() {
+    const g = document.getElementById('treeCamera');
+    if (!g) return;
+    g.setAttribute('transform', `translate(${camera.x} ${camera.y}) scale(${camera.scale})`);
+}
+
+function animateCameraTo(target, duration = 400) {
+    const start = { x: camera.x, y: camera.y, scale: camera.scale };
+    const prefersReduced = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+    if (prefersReduced) {
+        camera.x = target.x; camera.y = target.y; camera.scale = target.scale;
+        applyCamera();
+        return;
+    }
+    const t0 = performance.now();
+    function step(t) {
+        const p = Math.min(1, (t - t0) / duration);
+        const e = easeInOutCubic(p);
+        camera.x = start.x + (target.x - start.x) * e;
+        camera.y = start.y + (target.y - start.y) * e;
+        camera.scale = start.scale + (target.scale - start.scale) * e;
+        applyCamera();
+        if (p < 1) requestAnimationFrame(step);
+    }
+    requestAnimationFrame(step);
+}
+
+function easeInOutCubic(t) {
+    return t < 0.5 ? 4 * t * t * t : 1 - Math.pow(-2 * t + 2, 3) / 2;
+}
+
+function cameraTargetForNode(node, targetScale = 1.2) {
+    const svg = document.getElementById('treeSvg');
+    const w = svg.clientWidth;
+    const h = svg.clientHeight;
+    return {
+        x: w / 2 - node.x * targetScale,
+        y: h / 2 - node.y * targetScale,
+        scale: targetScale,
+    };
+}
+
+function focusNode(nodeId, animate = true) {
+    const n = treeNodesById[nodeId];
+    if (!n) return;
+    const targetScale = Math.max(camera.scale, 1.1);
+    const target = cameraTargetForNode(n, targetScale);
+    if (animate) animateCameraTo(target, 400);
+    else { camera.x = target.x; camera.y = target.y; camera.scale = target.scale; applyCamera(); }
+}
+
+function fitTree() {
+    const svg = document.getElementById('treeSvg');
+    if (!svg) return;
+    const w = svg.clientWidth;
+    const h = svg.clientHeight;
+
+    const bbox = computeTreeBBox();
+    const PAD = 60;
+    const sx = (w - PAD * 2) / Math.max(1, bbox.w);
+    const sy = (h - PAD * 2) / Math.max(1, bbox.h);
+    const s = Math.max(MIN_SCALE, Math.min(MAX_SCALE, Math.min(sx, sy)));
+    const target = {
+        x: w / 2 - (bbox.x + bbox.w / 2) * s,
+        y: h / 2 - (bbox.y + bbox.h / 2) * s,
+        scale: s,
+    };
+    animateCameraTo(target, 500);
+}
+
+function computeTreeBBox() {
+    let minX = Infinity, minY = Infinity, maxX = -Infinity, maxY = -Infinity;
+    function visit(n) {
+        const x1 = n.x - NODE_W / 2, y1 = n.y - NODE_H / 2;
+        const x2 = n.x + NODE_W / 2, y2 = n.y + NODE_H / 2;
+        minX = Math.min(minX, x1); minY = Math.min(minY, y1);
+        maxX = Math.max(maxX, x2); maxY = Math.max(maxY, y2);
+        const collapsed = n.type === 'area' && _collapsedAreas.has(n.rawId);
+        if (!collapsed) n.children.forEach(visit);
+    }
+    visit(treeRoot);
+    return { x: minX, y: minY, w: maxX - minX, h: maxY - minY };
+}
+
+function zoomAt(px, py, factor) {
+    const newScale = Math.max(MIN_SCALE, Math.min(MAX_SCALE, camera.scale * factor));
+    const realFactor = newScale / camera.scale;
+    camera.x = px - (px - camera.x) * realFactor;
+    camera.y = py - (py - camera.y) * realFactor;
+    camera.scale = newScale;
+    applyCamera();
+}
+
+function treeZoomIn() { zoomCenter(1.3); }
+function treeZoomOut() { zoomCenter(0.77); }
+function zoomCenter(f) {
+    const svg = document.getElementById('treeSvg');
+    zoomAt(svg.clientWidth / 2, svg.clientHeight / 2, f);
+}
+
+function treeFit() { fitTree(); }
+
+function treeBack() {
+    if (cameraStack.length > 1) {
+        cameraStack.pop();
+        const prev = cameraStack[cameraStack.length - 1];
+        selectedNodeId = prev.nodeId;
+        renderTree();
+        focusNode(prev.nodeId);
+    } else {
+        fitTree();
+    }
+}
+
+// ==========================================
+// POINTER EVENTS
+// ==========================================
+const _pointers = new Map();
+let _panStart = null;
+let _pinchStart = null;
+
+function initTreePointer() {
+    const svg = document.getElementById('treeSvg');
+    if (!svg || svg._inited) return;
+    svg._inited = true;
+
+    svg.addEventListener('pointerdown', e => {
+        if (e.pointerType === 'mouse' && e.button !== 0) return;
+        svg.setPointerCapture(e.pointerId);
+        _pointers.set(e.pointerId, {
+            x: e.clientX, y: e.clientY,
+            startX: e.clientX, startY: e.clientY,
+            startTime: Date.now(),
+        });
+
+        if (_pointers.size === 1) {
+            _panStart = { x: e.clientX, y: e.clientY, camX: camera.x, camY: camera.y };
+            _pinchStart = null;
+        } else if (_pointers.size === 2) {
+            const pts = [..._pointers.values()];
+            _pinchStart = {
+                dist: Math.hypot(pts[0].x - pts[1].x, pts[0].y - pts[1].y),
+                camScale: camera.scale,
+                camX: camera.x, camY: camera.y,
+            };
+            _panStart = null;
+        }
+    }, { passive: false });
+
+    svg.addEventListener('pointermove', e => {
+        const p = _pointers.get(e.pointerId);
+        if (!p) return;
+        p.x = e.clientX;
+        p.y = e.clientY;
+        const rect = svg.getBoundingClientRect();
+
+        if (_pointers.size === 1 && _panStart) {
+            camera.x = _panStart.camX + (e.clientX - _panStart.x);
+            camera.y = _panStart.camY + (e.clientY - _panStart.y);
+            applyCamera();
+        } else if (_pointers.size === 2 && _pinchStart) {
+            const pts = [..._pointers.values()];
+            const dist = Math.hypot(pts[0].x - pts[1].x, pts[0].y - pts[1].y);
+            const factor = dist / _pinchStart.dist;
+            const newScale = Math.max(MIN_SCALE, Math.min(MAX_SCALE, _pinchStart.camScale * factor));
+            const realFactor = newScale / _pinchStart.camScale;
+            const midX = (pts[0].x + pts[1].x) / 2 - rect.left;
+            const midY = (pts[0].y + pts[1].y) / 2 - rect.top;
+            camera.scale = newScale;
+            camera.x = midX - (midX - _pinchStart.camX) * realFactor;
+            camera.y = midY - (midY - _pinchStart.camY) * realFactor;
+            applyCamera();
+        }
+    }, { passive: false });
+
+    svg.addEventListener('pointerup', e => {
+        const p = _pointers.get(e.pointerId);
+        _pointers.delete(e.pointerId);
+
+        if (_pointers.size === 0) {
+            if (p) {
+                const dt = Date.now() - p.startTime;
+                const dx = Math.abs(p.x - p.startX);
+                const dy = Math.abs(p.y - p.startY);
+                if (dt < 350 && dx < 8 && dy < 8) handleTap(e.clientX, e.clientY);
+            }
+            _panStart = null;
+            _pinchStart = null;
+        } else if (_pointers.size === 1) {
+            const only = [..._pointers.values()][0];
+            _panStart = { x: only.x, y: only.y, camX: camera.x, camY: camera.y };
+            _pinchStart = null;
         }
     });
 
-    // Sortable для вложенных областей (внутри .group-body)
-    c.querySelectorAll('.group-body').forEach(body => {
-        const directAreas = [...body.querySelectorAll(':scope > .area-card[data-id]')];
-        const directGoals = [...body.querySelectorAll(':scope > .list-item[data-goal-id]')];
-
-        if (directAreas.length) {
-            body._sortableAreas = new Sortable(body, {
-                animation: 150, delay: 250, delayOnTouchOnly: true,
-                draggable: ':scope > .area-card[data-id]',
-                onEnd: async () => {
-                    const ids = [...body.querySelectorAll(':scope > .area-card[data-id]')]
-                        .map(el => parseInt(el.dataset.id)).filter(Boolean);
-                    if (ids.length) await api('/api/reorder', 'POST', { table: 'disc_areas', ids });
-                }
-            });
-        }
+    svg.addEventListener('pointercancel', e => {
+        _pointers.delete(e.pointerId);
+        if (_pointers.size === 0) { _panStart = null; _pinchStart = null; }
     });
 }
 
-async function toggleGoal(id, s) {
-    await api(`/api/disc/goals/${id}`, 'PATCH', { status: s === 'done' ? 'plan' : 'done' });
-    await loadAreas();
+function handleTap(clientX, clientY) {
+    const el = document.elementFromPoint(clientX, clientY);
+    const nodeEl = findNodeEl(el);
+    if (nodeEl) {
+        const id = nodeEl.dataset.nodeId;
+        const n = treeNodesById[id];
+        if (!n) return;
+
+        // Клик по чекбоксу цели — toggle
+        if (n.type === 'goal') {
+            const rect = nodeEl.getBoundingClientRect();
+            const cx = clientX - rect.left;
+            const cy = clientY - rect.top;
+            // Чекбокс в левой части карточки (16px от левого края, ширина ~30px)
+            if (cx < 32) {
+                toggleGoalDone(n);
+                return;
+            }
+        }
+
+        selectedNodeId = id;
+        lastFocusedNodeId = id;
+        cameraStack.push({ nodeId: id, x: camera.x, y: camera.y, scale: camera.scale });
+        if (cameraStack.length > 20) cameraStack.shift();
+        renderTree();
+        focusNode(id);
+    } else {
+        selectedNodeId = null;
+        updateActionsBar();
+        renderTree();
+    }
+}
+
+function findNodeEl(el) {
+    const svg = document.getElementById('treeSvg');
+    while (el && el !== svg) {
+        if (el.dataset && el.dataset.nodeId) return el;
+        el = el.parentNode;
+    }
+    return null;
+}
+
+// ==========================================
+// ACTION BAR / BREADCRUMB
+// ==========================================
+function updateActionsBar() {
+    const bar = document.getElementById('treeActions');
+    if (!bar) return;
+    if (!selectedNodeId) {
+        bar.classList.remove('visible');
+        return;
+    }
+    const n = treeNodesById[selectedNodeId];
+    if (!n) { bar.classList.remove('visible'); return; }
+
+    bar.classList.add('visible');
+    const btnBranch = document.getElementById('treeActionAddBranch');
+    const btnGoal = document.getElementById('treeActionAddGoal');
+    const btnEdit = document.getElementById('treeActionEdit');
+    const btnDel = document.getElementById('treeActionDelete');
+
+    // Ветку можно добавлять в root и в любую area
+    btnBranch.style.display = (n.type === 'root' || n.type === 'area') ? 'block' : 'none';
+    // Цель можно добавлять только в area
+    btnGoal.style.display = (n.type === 'area') ? 'block' : 'none';
+    // Редактировать — всё кроме root
+    btnEdit.style.display = (n.type !== 'root') ? 'block' : 'none';
+    btnDel.style.display = (n.type !== 'root') ? 'block' : 'none';
+}
+
+function updateBreadcrumb() {
+    const el = document.getElementById('treeBreadcrumb');
+    if (!el) return;
+    if (!selectedNodeId) {
+        el.innerHTML = '';
+        return;
+    }
+    const path = getPath(selectedNodeId);
+    el.innerHTML = path.map((n, i) => {
+        const isLast = i === path.length - 1;
+        return `<button class="tree-crumb ${isLast ? 'last' : ''}" onclick="focusNode('${n.id}', true); selectedNodeId = '${n.id}'; renderTree();">${escapeSvg(n.name)}</button>` +
+            (isLast ? '' : `<span class="tree-crumb-sep">›</span>`);
+    }).join('');
+}
+
+function getPath(nodeId) {
+    const path = [];
+    let n = treeNodesById[nodeId];
+    while (n) {
+        path.unshift(n);
+        if (n.type === 'root') break;
+        if (n.type === 'area' && n.parentAreaId) n = treeNodesById['a:' + n.parentAreaId];
+        else if (n.type === 'goal' && n.areaId) n = treeNodesById['a:' + n.areaId];
+        else n = treeNodesById['root'];
+    }
+    return path;
+}
+
+// ==========================================
+// ДЕЙСТВИЯ
+// ==========================================
+async function toggleGoalDone(n) {
+    try {
+        await api(`/api/disc/goals/${n.rawId}`, 'PATCH', { status: n.done ? 'plan' : 'done' });
+        await loadAreas();
+    } catch (e) { alert('Ошибка: ' + e.message); }
+}
+
+function treeAddBranch() {
+    if (!selectedNodeId) return;
+    const n = treeNodesById[selectedNodeId];
+    if (!n) return;
+    const parentId = (n.type === 'area') ? n.rawId : null;
+    openAreaModal(null, parentId);
+}
+
+function treeAddGoal() {
+    if (!selectedNodeId) return;
+    const n = treeNodesById[selectedNodeId];
+    if (!n || n.type !== 'area') return;
+    openGoalModal(null, n.rawId);
+}
+
+function treeEdit() {
+    if (!selectedNodeId) return;
+    const n = treeNodesById[selectedNodeId];
+    if (!n) return;
+    if (n.type === 'area') openAreaModal(n.rawId);
+    if (n.type === 'goal') openGoalModal(n.rawId, n.areaId);
+}
+
+function treeDelete() {
+    if (!selectedNodeId) return;
+    const n = treeNodesById[selectedNodeId];
+    if (!n) return;
+    if (n.type === 'area') {
+        const childrenCount = countGoals(n);
+        if (childrenCount > 0 && !confirm(`Удалить «${n.name}»? Внутри ${childrenCount} ${plural(childrenCount, 'элемент', 'элемента', 'элементов')}.`)) return;
+        if (childrenCount === 0 && !confirm(`Удалить «${n.name}»?`)) return;
+        deleteArea(n.rawId);
+    } else if (n.type === 'goal') {
+        if (!confirm(`Удалить цель «${n.name}»?`)) return;
+        deleteGoal(n.rawId);
+    }
+}
+
+async function deleteArea(id) {
+    try {
+        await api(`/api/disc/areas/${id}`, 'DELETE');
+        selectedNodeId = null;
+        await loadAreas();
+    } catch (e) { alert('Ошибка: ' + e.message); }
 }
 
 async function deleteGoal(id) {
-    if (!confirm('Удалить цель?')) return;
-    await api(`/api/disc/goals/${id}`, 'DELETE');
-    await loadAreas();
+    try {
+        await api(`/api/disc/goals/${id}`, 'DELETE');
+        selectedNodeId = null;
+        await loadAreas();
+    } catch (e) { alert('Ошибка: ' + e.message); }
 }
 
-// --- Область ---
+// ==========================================
+// МОДАЛКИ: ОБЛАСТЬ (ветка)
+// ==========================================
+let areaCtx = { id: null, parentId: null };
+
 function openAreaModal(id = null, parentId = null) {
     areaCtx = { id, parentId };
     const titleEl = document.getElementById('areaModalTitle');
@@ -442,7 +948,6 @@ function openAreaModal(id = null, parentId = null) {
     const delBtn = document.getElementById('areaDeleteBtn');
     const parentSel = document.getElementById('areaParentSelect');
 
-    // Собираем опции родителей (исключая себя и своих детей)
     const excludeIds = new Set();
     if (id) {
         excludeIds.add(id);
@@ -451,8 +956,7 @@ function openAreaModal(id = null, parentId = null) {
             added = false;
             areasFlat.forEach(a => {
                 if (a.parent_id && excludeIds.has(a.parent_id) && !excludeIds.has(a.id)) {
-                    excludeIds.add(a.id);
-                    added = true;
+                    excludeIds.add(a.id); added = true;
                 }
             });
         }
@@ -464,13 +968,13 @@ function openAreaModal(id = null, parentId = null) {
     if (id) {
         const a = areasFlat.find(x => x.id === id);
         if (a) {
-            titleEl.textContent = 'Редактировать область';
+            titleEl.textContent = 'Редактировать ветку';
             nameEl.value = a.name;
             parentSel.value = a.parent_id || '';
         }
         delBtn.style.display = 'block';
     } else {
-        titleEl.textContent = parentId ? 'Новая подобласть' : 'Новая область';
+        titleEl.textContent = parentId ? 'Новая подветка' : 'Новая ветка';
         nameEl.value = '';
         parentSel.value = parentId || '';
         delBtn.style.display = 'none';
@@ -495,13 +999,18 @@ async function saveArea() {
 
 async function deleteAreaFromModal() {
     if (!areaCtx.id) return;
-    if (!confirm('Удалить область со всеми подобластями и целями?')) return;
+    if (!confirm('Удалить ветку со всеми подобластями и целями?')) return;
     await api(`/api/disc/areas/${areaCtx.id}`, 'DELETE');
     closeAreaModal();
+    selectedNodeId = null;
     await loadAreas();
 }
 
-// --- Цель ---
+// ==========================================
+// МОДАЛКИ: ЦЕЛЬ (лист)
+// ==========================================
+let goalCtx = { id: null, areaId: null };
+
 function openGoalModal(id = null, areaId = null) {
     goalCtx = { id, areaId };
     const titleEl = document.getElementById('goalModalTitle');
@@ -509,7 +1018,7 @@ function openGoalModal(id = null, areaId = null) {
     const delBtn = document.getElementById('goalDeleteBtn');
     const areaSel = document.getElementById('goalAreaSelect');
 
-    areaSel.innerHTML = `<option value="">— Без области —</option>` +
+    areaSel.innerHTML = `<option value="">— Без ветки —</option>` +
         areasFlat.map(a => `<option value="${a.id}">${escapeHtml(a.name)}</option>`).join('');
 
     if (id) {
@@ -549,8 +1058,25 @@ async function deleteGoalFromModal() {
     if (!confirm('Удалить цель?')) return;
     await api(`/api/disc/goals/${goalCtx.id}`, 'DELETE');
     closeGoalModal();
+    selectedNodeId = null;
     await loadAreas();
 }
+
+// ==========================================
+// INIT (вызывается после загрузки DOM)
+// ==========================================
+document.addEventListener('DOMContentLoaded', () => {
+    setTimeout(initTreePointer, 100);
+});
+
+// Переинициализация при переключении на вкладку Goals
+const _origSwitchSubTab = window.switchSubTab;
+window.switchSubTab = function(parent, tab, btn) {
+    if (typeof _origSwitchSubTab === 'function') _origSwitchSubTab(parent, tab, btn);
+    if (parent === 'discipline' && tab === 'goals') {
+        setTimeout(() => { initTreePointer(); renderTree(); }, 50);
+    }
+};
 
 // ==========================================
 // ===== HABIT REPORT (все привычки) =====
@@ -630,7 +1156,7 @@ function renderHabitReport(list) {
 
         return `<div class="habit-rep-block">
             <div class="habit-rep-header">
-                <div class="habit-rep-name" onclick="closeHabitReport(); openHabitDashboard(${h.id})">${escapeHtml(h.name)}</div>
+                <div class="habit-rep-name" onclick="closeHabitReport(); openHabitModal(${h.id})">${escapeHtml(h.name)}</div>
                 <div class="habit-rep-count">${done.size}</div>
             </div>
             <div class="habit-rep-scroll">
