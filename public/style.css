@@ -1863,7 +1863,7 @@ textarea.modal-input {
 
 /* SVG: edges */
 .tree-edge {
-    stroke: var(--glass-border);
+    stroke: var(--accent);
     stroke-width: 1.5;
     fill: none;
 }
