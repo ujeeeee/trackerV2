@@ -99,7 +99,10 @@ async function saveImport() {
     const text = document.getElementById('importText').value;
     if (!text.trim()) return alert('Вставь список');
     try {
-        const res = await api(`/api/import/${importSection}`, 'POST', { text });
+        let endpoint = importSection;
+        if (importSection === 'foodProducts') endpoint = 'food-products';
+        if (importSection === 'foodRecipes') endpoint = 'food-recipes';
+        const res = await api(`/api/import/${endpoint}`, 'POST', { text });
         closeImportModal();
         let msg = `✅ Добавлено: ${res.added}`;
         if (res.groupsAdded) msg += `, новых групп: ${res.groupsAdded}`;

@@ -433,7 +433,6 @@ app.post('/api/import/food-products', authMiddleware, async (req, res) => {
     const lines = text.split('\n').map(l => l.trim()).filter(Boolean);
     let added = 0;
 
-    // Формат: Название | единица | ккал | Б | Ж | У | цена | за сколько
     for (const line of lines) {
         const parts = line.split('|').map(p => p.trim());
         const name = parts[0];
@@ -484,7 +483,6 @@ app.post('/api/import/food-recipes', authMiddleware, async (req, res) => {
             }
             continue;
         }
-        // Формат: Название | порции | инструкция
         const parts = line.split('|').map(p => p.trim());
         const name = parts[0];
         if (!name) continue;
