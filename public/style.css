@@ -1734,7 +1734,7 @@ textarea.modal-input {
 /* Breadcrumb */
 .tree-breadcrumb {
     position: absolute;
-    top: 30px;
+    top: 27px;
     left: 10px;
     right: 10px;
     display: flex;
@@ -1779,12 +1779,13 @@ textarea.modal-input {
 
 /* Controls */
 .tree-controls {
-    position: absolute;
-    top: 55px;
+    position: fixed;
+    bottom: calc(env(safe-area-inset-bottom, 0px) + 210px);
     right: 10px;
     display: flex;
-    gap: 4px;
-    z-index: 5;
+    flex-direction: column;
+    gap: 6px;
+    z-index: 60;
 }
 .tree-ctrl-btn {
     width: 38px;
