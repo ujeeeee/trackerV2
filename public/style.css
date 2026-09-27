@@ -7,7 +7,7 @@
     radial-gradient(ellipse 80% 40% at 50% 0%, rgba(232, 80, 61, 0.10) 0%, transparent 70%);
     --glass: rgba(28, 28, 32, 0.5);
     --glass-strong: rgba(20, 20, 24, 0.65);
-    --glass-border: rgba(255, 255, 255, 0.08);
+    --glass-border: rgba(255, 255, 255, 0.346);
     --glass-highlight: rgba(255, 255, 255, 0.06);
     --card: rgba(38, 38, 44, 0.5);
     --card-hover: rgba(48, 48, 56, 0.65);
@@ -1863,7 +1863,7 @@ textarea.modal-input {
 
 /* SVG: edges */
 .tree-edge {
-    stroke: var(--accent);
+    stroke: var(--glass-border);
     stroke-width: 1.5;
     fill: none;
 }
