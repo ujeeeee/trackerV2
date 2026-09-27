@@ -1976,3 +1976,41 @@ textarea.modal-input {
     fill: var(--text-tertiary);
     text-decoration: line-through;
 }
+
+/* Subtitle с целями — кликабельный */
+.tn-sub-clickable {
+    cursor: pointer;
+    fill: var(--accent);
+    font-weight: 600;
+}
+.tn-sub-clickable:hover {
+    fill: var(--accent);
+    opacity: 0.8;
+}
+
+/* ==========================================
+   GOAL DRAG & DROP
+   ========================================== */
+.dragging-goal {
+    opacity: 0.25;
+}
+.goal-drag-ghost {
+    position: fixed;
+    padding: 6px 12px;
+    background: var(--glass-strong);
+    backdrop-filter: blur(20px) saturate(180%);
+    -webkit-backdrop-filter: blur(20px) saturate(180%);
+    border: 1px solid var(--accent);
+    border-radius: 10px;
+    color: var(--text);
+    font-size: 12px;
+    font-weight: 600;
+    pointer-events: none;
+    z-index: 300;
+    box-shadow: 0 8px 24px rgba(0,0,0,0.3), 0 0 12px rgba(var(--accent-rgb), 0.35);
+    max-width: 240px;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+}

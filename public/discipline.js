@@ -321,7 +321,7 @@ const camera = { x: 0, y: 0, scale: 1 };
 const MAX_SCALE = 3;
 let minAllowedScale = 0.3;   // динамический минимум
 
-const NODE_W = 140;
+const NODE_W = 170;
 const NODE_H = 52;
 const H_GAP = 22;
 const V_GAP = 60;
@@ -330,6 +330,22 @@ const PAD_GOALS = 6;
 const GOAL_ROW_H = 20;
 
 let _collapsedAreas = new Set();
+
+let _collapsedGoals = new Set(
+    JSON.parse(localStorage.getItem('collapse_goalLists') || '[]')
+);
+function saveCollapsedGoals() {
+    localStorage.setItem('collapse_goalLists', JSON.stringify([..._collapsedGoals]));
+}
+function isGoalsCollapsed(areaId) {
+    return _collapsedGoals.has(areaId);
+}
+function toggleGoalsCollapsed(areaId) {
+    if (_collapsedGoals.has(areaId)) _collapsedGoals.delete(areaId);
+    else _collapsedGoals.add(areaId);
+    saveCollapsedGoals();
+    renderTree();
+}
 
 // ==========================================
 // ЗАГРУЗКА
@@ -441,7 +457,9 @@ function computeSubtreeWidth(node) {
 
 function computeNodeHeight(node) {
     if (node.type === 'area' && node.goals && node.goals.length) {
-        return NODE_H + PAD_GOALS + node.goals.length * GOAL_ROW_H;
+        if (isGoalsCollapsed(node.rawId)) return NODE_H;
+        // NODE_H + заголовок-паддинг + N строк + 6px снизу
+        return NODE_H + PAD_GOALS + node.goals.length * GOAL_ROW_H + 6;
     }
     return NODE_H;
 }
@@ -548,6 +566,8 @@ function renderSingleNode(n) {
     const x = n.x - NODE_W / 2;
     const y = n.y - n.h / 2;
     const isCollapsed = n.type === 'area' && _collapsedAreas.has(n.rawId);
+    const isGoalsCollapsedFlag = n.type === 'area' && isGoalsCollapsed(n.rawId);
+    const hasGoals = n.type === 'area' && n.goals && n.goals.length > 0;
     const cls = ['tree-node'];
     if (n.type === 'root') cls.push('root');
     if (isCollapsed) cls.push('collapsed');
@@ -556,23 +576,32 @@ function renderSingleNode(n) {
     const sub = getNodeSubtitle(n);
     const totalH = n.h;
 
+    // Скрываем список целей, если свёрнуто
+    const showGoals = hasGoals && !isGoalsCollapsedFlag && !isCollapsed;
+
+    // Подпись: если цели есть, добавляем стрелочку
+    const arrow = hasGoals ? (isGoalsCollapsedFlag ? ' ▸' : ' ▾') : '';
+    const subText = sub ? `${sub}${arrow}` : '';
+
     let inner = '';
     inner += `
-        <text class="tn-name" x="${NODE_W / 2}" y="${sub ? NODE_H / 2 - 2 : NODE_H / 2 + 4}" text-anchor="middle">${escapeSvg(truncateName(n.name, 16))}</text>
-        ${sub ? `<text class="tn-sub" x="${NODE_W / 2}" y="${NODE_H / 2 + 13}" text-anchor="middle">${escapeSvg(truncateName(sub, 16))}</text>` : ''}
+        <text class="tn-name" x="${NODE_W / 2}" y="${sub ? NODE_H / 2 - 2 : NODE_H / 2 + 4}" text-anchor="middle">${escapeSvg(truncateName(n.name, 20))}</text>
+        ${subText ? `<text class="tn-sub ${hasGoals ? 'tn-sub-clickable' : ''}" data-toggle-goals="${n.rawId}" x="${NODE_W / 2}" y="${NODE_H / 2 + 13}" text-anchor="middle">${escapeSvg(subText)}</text>` : ''}
     `;
 
     // Цели — списком
     let goalsHtml = '';
-    if (!isCollapsed && n.goals && n.goals.length) {
+    if (showGoals) {
         n.goals.forEach((g, i) => {
             const gy = NODE_H + PAD_GOALS + i * GOAL_ROW_H;
             const checkCls = g.done ? 'done' : '';
             goalsHtml += `
-                <g class="tn-goal-row ${checkCls}" data-goal-id="${g.rawId}">
-                    <circle class="tn-goal-check ${checkCls}" cx="16" cy="${gy + GOAL_ROW_H / 2}" r="6" />
-                    <path class="tn-goal-check-mark" d="M 13 ${gy + GOAL_ROW_H / 2} L 15 ${gy + GOAL_ROW_H / 2 + 2} L 19 ${gy + GOAL_ROW_H / 2 - 2}" />
-                    <text class="tn-goal-name" x="28" y="${gy + GOAL_ROW_H / 2 + 4}">${escapeSvg(truncateName(g.name, 13))}</text>
+                <g class="tn-goal-row ${checkCls}" data-drag-goal="${g.rawId}" data-drag-area="${n.rawId}">
+                    <g data-toggle-goal="${g.rawId}">
+                        <circle class="tn-goal-check ${checkCls}" cx="16" cy="${gy + GOAL_ROW_H / 2}" r="6" />
+                        <path class="tn-goal-check-mark" d="M 13 ${gy + GOAL_ROW_H / 2} L 15 ${gy + GOAL_ROW_H / 2 + 2} L 19 ${gy + GOAL_ROW_H / 2 - 2}" />
+                    </g>
+                    <text class="tn-goal-name" data-edit-goal="${g.rawId}" data-goal-area="${n.rawId}" x="28" y="${gy + GOAL_ROW_H / 2 + 4}">${escapeSvg(truncateName(g.name, 18))}</text>
                 </g>
             `;
         });
@@ -836,20 +865,39 @@ function initTreePointer() {
         _pointers.delete(e.pointerId);
         if (_pointers.size === 0) { _panStart = null; _pinchStart = null; }
     });
+    initGoalDrag();
 }
 
 function handleTap(clientX, clientY) {
     const el = document.elementFromPoint(clientX, clientY);
 
-    // Клик по цели внутри карточки
-    const goalEl = findGoalEl(el);
-    if (goalEl) {
-        const goalId = parseInt(goalEl.dataset.goalId);
-        const g = goalsFlat.find(x => x.id === goalId);
-        if (g) toggleGoalDone(g.id, g.status === 'done');
+    // 1. Клик по иконке "стрелка целей" (subtitle с data-toggle-goals)
+    const toggleEl = findElWithDataset(el, 'toggleGoals');
+    if (toggleEl) {
+        const areaId = parseInt(toggleEl.dataset.toggleGoals);
+        toggleGoalsCollapsed(areaId);
         return;
     }
 
+    // 2. Клик по чекбоксу цели → toggle done
+    const checkEl = findElWithDataset(el, 'toggleGoal');
+    if (checkEl) {
+        const goalId = parseInt(checkEl.dataset.toggleGoal);
+        const g = goalsFlat.find(x => x.id === goalId);
+        if (g) toggleGoalDone(goalId, g.status === 'done');
+        return;
+    }
+
+    // 3. Клик по имени цели → редактирование
+    const editEl = findElWithDataset(el, 'editGoal');
+    if (editEl) {
+        const goalId = parseInt(editEl.dataset.editGoal);
+        const areaId = parseInt(editEl.dataset.goalArea);
+        openGoalModal(goalId, areaId);
+        return;
+    }
+
+    // 4. Клик по ноде
     const nodeEl = findNodeEl(el);
     if (nodeEl) {
         const id = nodeEl.dataset.nodeId;
@@ -866,6 +914,15 @@ function handleTap(clientX, clientY) {
         updateActionsBar();
         renderTree();
     }
+}
+
+function findElWithDataset(el, key) {
+    const svg = document.getElementById('treeSvg');
+    while (el && el !== svg) {
+        if (el.dataset && el.dataset[key] !== undefined) return el;
+        el = el.parentNode;
+    }
+    return null;
 }
 
 function findGoalEl(el) {
@@ -1093,6 +1150,10 @@ function openGoalModal(id = null, areaId = null) {
     areaSel.innerHTML = `<option value="">— Без ветки —</option>` +
         areasFlat.map(a => `<option value="${a.id}">${escapeHtml(a.name)}</option>`).join('');
 
+    // Кнопки ↑↓ — только при редактировании
+    const moveUpBtn = document.getElementById('goalMoveUpBtn');
+    const moveDownBtn = document.getElementById('goalMoveDownBtn');
+
     if (id) {
         const g = goalsFlat.find(x => x.id === id);
         if (g) {
@@ -1101,11 +1162,15 @@ function openGoalModal(id = null, areaId = null) {
             areaSel.value = g.area_id || '';
         }
         delBtn.style.display = 'block';
+        if (moveUpBtn) moveUpBtn.style.display = 'block';
+        if (moveDownBtn) moveDownBtn.style.display = 'block';
     } else {
         titleEl.textContent = 'Новая цель';
         nameEl.value = '';
         areaSel.value = areaId || '';
         delBtn.style.display = 'none';
+        if (moveUpBtn) moveUpBtn.style.display = 'none';
+        if (moveDownBtn) moveDownBtn.style.display = 'none';
     }
     openModal('goalModal');
     setTimeout(() => nameEl.focus(), 200);
@@ -1254,4 +1319,181 @@ function renderHabitReport(list) {
             el.scrollLeft = el.scrollWidth;
         });
     }, 50);
+}
+
+// ==========================================
+// ПЕРЕМЕЩЕНИЕ ЦЕЛИ ВНУТРИ ОБЛАСТИ
+// ==========================================
+async function moveGoal(direction) {
+    if (!goalCtx.id) return;
+    const g = goalsFlat.find(x => x.id === goalCtx.id);
+    if (!g) return;
+    const areaId = g.area_id;
+    if (!areaId) return alert('Цель без ветки — сортировка недоступна');
+
+    // Цели в этой области по порядку
+    const siblings = goalsFlat
+        .filter(x => x.area_id === areaId)
+        .sort((a, b) => (a.sort_order || 0) - (b.sort_order || 0));
+
+    const idx = siblings.findIndex(x => x.id === goalCtx.id);
+    if (idx < 0) return;
+    const newIdx = direction === 'up' ? idx - 1 : idx + 1;
+    if (newIdx < 0 || newIdx >= siblings.length) return;
+
+    // Меняем местами
+    [siblings[idx], siblings[newIdx]] = [siblings[newIdx], siblings[idx]];
+
+    try {
+        await api('/api/reorder', 'POST', {
+            table: 'disc_goals',
+            ids: siblings.map(s => s.id),
+        });
+        await loadAreas();
+    } catch (e) { alert('Ошибка: ' + e.message); }
+
+    
+}
+
+// ==========================================
+// GOAL DRAG & DROP
+// ==========================================
+let _goalDrag = null;
+
+function initGoalDrag() {
+    const svg = document.getElementById('treeSvg');
+    if (!svg || svg._dragInited) return;
+    svg._dragInited = true;
+
+    svg.addEventListener('pointerdown', onGoalDragDown, true);
+    svg.addEventListener('pointermove', onGoalDragMove, true);
+    svg.addEventListener('pointerup', onGoalDragUp, true);
+    svg.addEventListener('pointercancel', onGoalDragCancel, true);
+}
+
+function onGoalDragDown(e) {
+    const el = e.target;
+    if (!el.closest) return;
+    const goalRow = el.closest('[data-drag-goal]');
+    if (!goalRow) return;
+
+    _goalDrag = {
+        pointerId: e.pointerId,
+        goalId: parseInt(goalRow.dataset.dragGoal),
+        areaId: parseInt(goalRow.dataset.dragArea),
+        el: goalRow,
+        startX: e.clientX,
+        startY: e.clientY,
+        started: false,
+        ghost: null,
+    };
+    try { svg.setPointerCapture(e.pointerId); } catch (err) {}
+    e.stopImmediatePropagation();
+    e.preventDefault();
+}
+
+function onGoalDragMove(e) {
+    if (!_goalDrag || _goalDrag.pointerId !== e.pointerId) return;
+    e.stopImmediatePropagation();
+    const dy = e.clientY - _goalDrag.startY;
+    const dx = e.clientX - _goalDrag.startX;
+
+    if (!_goalDrag.started) {
+        if (Math.abs(dy) < 8 && Math.abs(dx) < 8) return;
+        startGoalDragVisual();
+    }
+    moveGoalGhost(e.clientX, e.clientY);
+}
+
+function onGoalDragUp(e) {
+    if (!_goalDrag || _goalDrag.pointerId !== e.pointerId) return;
+    e.stopImmediatePropagation();
+
+    if (_goalDrag.started) {
+        const targetIdx = computeGoalDropIndex(_goalDrag.areaId, e.clientY);
+        finishGoalDrag(targetIdx);
+    } else {
+        const goalId = _goalDrag.goalId;
+        const areaId = _goalDrag.areaId;
+        cleanupGoalDrag();
+        handleGoalTapAt(e.clientX, e.clientY, goalId, areaId);
+    }
+}
+
+function onGoalDragCancel(e) {
+    if (!_goalDrag || _goalDrag.pointerId !== e.pointerId) return;
+    cleanupGoalDrag();
+}
+
+function startGoalDragVisual() {
+    _goalDrag.started = true;
+    _goalDrag.el.classList.add('dragging-goal');
+    const g = goalsFlat.find(x => x.id === _goalDrag.goalId);
+    const ghost = document.createElement('div');
+    ghost.className = 'goal-drag-ghost';
+    ghost.textContent = g ? g.name : '';
+    document.body.appendChild(ghost);
+    _goalDrag.ghost = ghost;
+}
+
+function moveGoalGhost(x, y) {
+    if (!_goalDrag || !_goalDrag.ghost) return;
+    _goalDrag.ghost.style.left = (x + 12) + 'px';
+    _goalDrag.ghost.style.top = (y - 14) + 'px';
+}
+
+function computeGoalDropIndex(areaId, clientY) {
+    const areaEl = document.querySelector(`g[data-node-id="a:${areaId}"]`);
+    if (!areaEl) return 0;
+    const goalEls = areaEl.querySelectorAll('.tn-goal-row');
+    for (let i = 0; i < goalEls.length; i++) {
+        const r = goalEls[i].getBoundingClientRect();
+        const midY = r.top + r.height / 2;
+        if (clientY < midY) return i;
+    }
+    return goalEls.length;
+}
+
+async function finishGoalDrag(targetIdx) {
+    const areaId = _goalDrag.areaId;
+    const goalId = _goalDrag.goalId;
+    cleanupGoalDrag();
+
+    const areaNode = treeNodesById['a:' + areaId];
+    if (!areaNode || !areaNode.goals) return;
+    const sourceIdx = areaNode.goals.findIndex(g => g.id === goalId);
+    if (sourceIdx < 0) return;
+    let insertIdx = targetIdx;
+    if (insertIdx > sourceIdx) insertIdx -= 1;
+    if (insertIdx === sourceIdx) return;
+
+    const newOrder = [...areaNode.goals];
+    const [moved] = newOrder.splice(sourceIdx, 1);
+    newOrder.splice(insertIdx, 0, moved);
+
+    try {
+        await api('/api/reorder', 'POST', {
+            table: 'disc_goals',
+            ids: newOrder.map(g => g.rawId),
+        });
+        await loadAreas();
+    } catch (e) { alert('Ошибка: ' + e.message); }
+}
+
+function cleanupGoalDrag() {
+    if (!_goalDrag) return;
+    if (_goalDrag.ghost) _goalDrag.ghost.remove();
+    if (_goalDrag.el) _goalDrag.el.classList.remove('dragging-goal');
+    _goalDrag = null;
+}
+
+function handleGoalTapAt(x, y, goalId, areaId) {
+    const el = document.elementFromPoint(x, y);
+    const checkEl = findElWithDataset(el, 'toggleGoal');
+    if (checkEl) {
+        const g = goalsFlat.find(x => x.id === goalId);
+        if (g) toggleGoalDone(goalId, g.status === 'done');
+        return;
+    }
+    openGoalModal(goalId, areaId);
 }
