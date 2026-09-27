@@ -1708,46 +1708,58 @@ textarea.modal-input {
    AREAS: вложенное дерево
    ========================================== */
 
-/* Топ-области — обычные */
-#areasList > .area-card {
-    padding: 14px;
-    margin-bottom: 10px;
-    border-radius: 14px;
+/* Топ-область — обычная карточка */
+.area-card.area-depth-0 {
+    background: var(--card);
+    border: 1px solid var(--glass-border);
+    border-radius: 18px;
+    padding: 16px;
+    margin-bottom: 12px;
+    box-shadow: inset 0 1px 0 var(--glass-highlight);
 }
 
-/* Любая вложенная — 3px со всех сторон */
-#areasList .area-card .area-card {
-    padding: 3px;
-    margin: 3px 0 0 0;
-    border-radius: 10px;
+/* 1-й уровень вложенности — с серым фоном */
+.area-card.area-depth-1 {
     background: var(--bg-secondary);
-    border-color: transparent;
+    border: 1px solid var(--glass-border);
+    border-radius: 14px;
+    padding: 12px;
+    margin-bottom: 10px;
 }
 
-/* Вложенные второго уровня и глубже — без фона, но отступ тот же */
-#areasList .area-card .area-card .area-card {
+/* 2-й уровень — прозрачный с пунктиром */
+.area-card.area-depth-2 {
+    background: transparent;
+    border: 1px dashed var(--glass-border);
+    border-radius: 12px;
+    padding: 10px;
+    margin-bottom: 8px;
+}
+
+/* 3+ уровни — просто отступ */
+.area-card.area-depth-3,
+.area-card.area-depth-4,
+.area-card.area-depth-5,
+.area-card.area-depth-6 {
     background: transparent;
     border: none;
+    padding: 8px 0 0;
+    margin-bottom: 6px;
 }
 
-/* Заголовки вложенных — компактнее */
-#areasList .area-card .area-card > .group-header {
-    margin-bottom: 3px;
+/* Заголовки вложенных областей — меньше */
+.area-card.area-depth-1 > .group-header .group-name {
+    font-size: 15px;
+    font-weight: 600;
 }
-#areasList .area-card .area-card .area-card > .group-header {
-    margin-bottom: 2px;
-}
-
-/* Имя вложенной области — чуть меньше */
-#areasList .area-card .area-card > .group-header .group-name {
+.area-card.area-depth-2 > .group-header .group-name {
     font-size: 14px;
+    font-weight: 600;
 }
-#areasList .area-card .area-card .area-card > .group-header .group-name {
+.area-card.area-depth-3 > .group-header .group-name,
+.area-card.area-depth-4 > .group-header .group-name,
+.area-card.area-depth-5 > .group-header .group-name,
+.area-card.area-depth-6 > .group-header .group-name {
     font-size: 13px;
     font-weight: 500;
-}
-
-/* Цели во вложенных — компактнее */
-#areasList .area-card .area-card .list-item {
-    padding: 4px 2px;
 }
