@@ -1711,15 +1711,15 @@ textarea.modal-input {
     background: var(--bg-secondary);
     border-color: transparent;
     border-radius: 10px;
-    padding: 6px 8px;
-    margin-bottom: 4px;
+    padding: 4px 0;
+    margin-bottom: 2px;
 }
 .area-card.area-depth-2 {
     background: transparent;
-    border: 1px dashed var(--glass-border);
-    border-radius: 8px;
-    padding: 4px 6px;
-    margin-bottom: 2px;
+    border: none;
+    border-radius: 0;
+    padding: 2px 0;
+    margin-bottom: 1px;
 }
 .area-card.area-depth-3,
 .area-card.area-depth-4,
@@ -1727,13 +1727,13 @@ textarea.modal-input {
 .area-card.area-depth-6 {
     background: transparent;
     border: none;
-    padding: 2px 0 0;
+    padding: 1px 0;
     border-radius: 0;
-    margin-bottom: 1px;
+    margin-bottom: 0;
 }
 
 /* Заголовки вложенных областей — компактнее */
-.area-card.area-depth-1 > .group-header { margin-bottom: 4px; }
+.area-card.area-depth-1 > .group-header { margin-bottom: 3px; }
 .area-card.area-depth-2 > .group-header { margin-bottom: 2px; }
 .area-card.area-depth-3 > .group-header,
 .area-card.area-depth-4 > .group-header,
@@ -1744,22 +1744,17 @@ textarea.modal-input {
     font-size: 14px;
     font-weight: 600;
 }
-.area-card.area-depth-2 > .group-header .group-name {
-    font-size: 13px;
-    font-weight: 600;
-}
+.area-card.area-depth-2 > .group-header .group-name,
 .area-card.area-depth-3 > .group-header .group-name,
 .area-card.area-depth-4 > .group-header .group-name,
-.area-card.area-depth-5 > .group-header .group-name,
-.area-card.area-depth-6 > .group-header .group-name {
+.area-card.area-depth-5 > .group-header .group-name {
     font-size: 13px;
     font-weight: 500;
 }
 
 /* Список внутри вложенной — без лишних отступов */
+.area-card.area-depth-1 .list-item,
 .area-card.area-depth-2 .list-item,
-.area-card.area-depth-3 .list-item,
-.area-card.area-depth-4 .list-item,
-.area-card.area-depth-5 .list-item {
-    padding: 4px 2px;
+.area-card.area-depth-3 .list-item {
+    padding: 3px 2px;
 }
