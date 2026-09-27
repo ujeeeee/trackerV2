@@ -575,21 +575,18 @@ function renderSingleNode(n) {
 
     const sub = getNodeSubtitle(n);
     const totalH = n.h;
-
-    // Скрываем список целей, если свёрнуто
     const showGoals = hasGoals && !isGoalsCollapsedFlag && !isCollapsed;
 
-    // Подпись: если цели есть, добавляем стрелочку
     const arrow = hasGoals ? (isGoalsCollapsedFlag ? ' ▸' : ' ▾') : '';
     const subText = sub ? `${sub}${arrow}` : '';
 
     let inner = '';
     inner += `
-        <text class="tn-name" x="${NODE_W / 2}" y="${sub ? NODE_H / 2 - 2 : NODE_H / 2 + 4}" text-anchor="middle">${escapeSvg(truncateName(n.name, 20))}</text>
-        ${subText ? `<text class="tn-sub ${hasGoals ? 'tn-sub-clickable' : ''}" data-toggle-goals="${n.rawId}" x="${NODE_W / 2}" y="${NODE_H / 2 + 13}" text-anchor="middle">${escapeSvg(subText)}</text>` : ''}
+        <text class="tn-name" x="${NODE_W / 2}" y="${sub ? NODE_H / 2 - 2 : NODE_H / 2 + 4}" text-anchor="middle" pointer-events="none">${escapeSvg(truncateName(n.name, 20))}</text>
+        ${subText ? `<text class="tn-sub" x="${NODE_W / 2}" y="${NODE_H / 2 + 13}" text-anchor="middle" pointer-events="none">${escapeSvg(subText)}</text>` : ''}
+        ${hasGoals ? `<rect class="tn-sub-clickable-rect" x="0" y="${NODE_H / 2 - 4}" width="${NODE_W}" height="26" fill="transparent" pointer-events="all" data-toggle-goals="${n.rawId}" />` : ''}
     `;
 
-    // Цели — списком
     let goalsHtml = '';
     if (showGoals) {
         n.goals.forEach((g, i) => {
@@ -597,11 +594,12 @@ function renderSingleNode(n) {
             const checkCls = g.done ? 'done' : '';
             goalsHtml += `
                 <g class="tn-goal-row ${checkCls}" data-drag-goal="${g.rawId}" data-drag-area="${n.rawId}">
+                    <rect x="0" y="${gy}" width="${NODE_W}" height="${GOAL_ROW_H}" fill="transparent" pointer-events="all" />
                     <g data-toggle-goal="${g.rawId}">
                         <circle class="tn-goal-check ${checkCls}" cx="16" cy="${gy + GOAL_ROW_H / 2}" r="6" />
                         <path class="tn-goal-check-mark" d="M 13 ${gy + GOAL_ROW_H / 2} L 15 ${gy + GOAL_ROW_H / 2 + 2} L 19 ${gy + GOAL_ROW_H / 2 - 2}" />
                     </g>
-                    <text class="tn-goal-name" data-edit-goal="${g.rawId}" data-goal-area="${n.rawId}" x="28" y="${gy + GOAL_ROW_H / 2 + 4}">${escapeSvg(truncateName(g.name, 18))}</text>
+                    <text class="tn-goal-name" data-edit-goal="${g.rawId}" data-goal-area="${n.rawId}" x="28" y="${gy + GOAL_ROW_H / 2 + 4}" pointer-events="all">${escapeSvg(truncateName(g.name, 18))}</text>
                 </g>
             `;
         });
@@ -871,15 +869,12 @@ function initTreePointer() {
 function handleTap(clientX, clientY) {
     const el = document.elementFromPoint(clientX, clientY);
 
-    // 1. Клик по иконке "стрелка целей" (subtitle с data-toggle-goals)
     const toggleEl = findElWithDataset(el, 'toggleGoals');
     if (toggleEl) {
-        const areaId = parseInt(toggleEl.dataset.toggleGoals);
-        toggleGoalsCollapsed(areaId);
+        toggleGoalsCollapsed(parseInt(toggleEl.dataset.toggleGoals));
         return;
     }
 
-    // 2. Клик по чекбоксу цели → toggle done
     const checkEl = findElWithDataset(el, 'toggleGoal');
     if (checkEl) {
         const goalId = parseInt(checkEl.dataset.toggleGoal);
@@ -888,16 +883,18 @@ function handleTap(clientX, clientY) {
         return;
     }
 
-    // 3. Клик по имени цели → редактирование
     const editEl = findElWithDataset(el, 'editGoal');
     if (editEl) {
-        const goalId = parseInt(editEl.dataset.editGoal);
-        const areaId = parseInt(editEl.dataset.goalArea);
-        openGoalModal(goalId, areaId);
+        openGoalModal(parseInt(editEl.dataset.editGoal), parseInt(editEl.dataset.goalArea));
         return;
     }
 
-    // 4. Клик по ноде
+    const dragEl = findElWithDataset(el, 'dragGoal');
+    if (dragEl) {
+        openGoalModal(parseInt(dragEl.dataset.dragGoal), parseInt(dragEl.dataset.dragArea));
+        return;
+    }
+
     const nodeEl = findNodeEl(el);
     if (nodeEl) {
         const id = nodeEl.dataset.nodeId;
@@ -914,6 +911,15 @@ function handleTap(clientX, clientY) {
         updateActionsBar();
         renderTree();
     }
+}
+
+function findElWithDataset(el, key) {
+    const svg = document.getElementById('treeSvg');
+    while (el && el !== svg) {
+        if (el.dataset && el.dataset[key] !== undefined) return el;
+        el = el.parentNode;
+    }
+    return null;
 }
 
 function findElWithDataset(el, key) {
@@ -1413,10 +1419,7 @@ function onGoalDragUp(e) {
         const targetIdx = computeGoalDropIndex(_goalDrag.areaId, e.clientY);
         finishGoalDrag(targetIdx);
     } else {
-        const goalId = _goalDrag.goalId;
-        const areaId = _goalDrag.areaId;
         cleanupGoalDrag();
-        handleGoalTapAt(e.clientX, e.clientY, goalId, areaId);
     }
 }
 

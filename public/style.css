@@ -1991,6 +1991,16 @@ textarea.modal-input {
 /* ==========================================
    GOAL DRAG & DROP
    ========================================== */
+.tn-sub,
+.tn-goal-name {
+    pointer-events: all;
+}
+.tn-goal-name {
+    cursor: pointer;
+}
+.tn-sub-clickable-rect {
+    cursor: pointer;
+}
 .dragging-goal {
     opacity: 0.25;
 }
