@@ -325,7 +325,9 @@ const NODE_W = 140;
 const NODE_H = 52;
 const H_GAP = 22;
 const V_GAP = 60;
-const ROOT_GAP = 60;   // расстояние между деревьями
+const ROOT_GAP = 60;
+const PAD_GOALS = 6;
+const GOAL_ROW_H = 20;
 
 let _collapsedAreas = new Set();
 
@@ -369,6 +371,9 @@ function buildTreeData() {
     });
 
     // Цели
+    // Цели — это листья, они не рисуются как отдельные ноды
+    // Их держим в отдельном объекте goalsByArea
+    // (в treeNodesById тоже добавим для совместимости)
     goalsFlat.forEach(g => {
         const id = 'g:' + g.id;
         treeNodesById[id] = {
@@ -383,6 +388,11 @@ function buildTreeData() {
     });
 
     // Связываем области
+    // Связываем области — инициализируем goals массивом
+    areasFlat.forEach(a => {
+        treeNodesById['a:' + a.id].goals = [];
+    });
+
     areasFlat.forEach(a => {
         const node = treeNodesById['a:' + a.id];
         if (a.parent_id && treeNodesById['a:' + a.parent_id]) {
@@ -392,14 +402,16 @@ function buildTreeData() {
         }
     });
 
-    // Цели к областям
+    // Цели — в goals к области
     goalsFlat.forEach(g => {
-        const node = treeNodesById['g:' + g.id];
         const areaNode = g.area_id ? treeNodesById['a:' + g.area_id] : null;
         if (areaNode) {
-            areaNode.children.push(node);
-        } else {
-            root.children.push(node);
+            areaNode.goals.push({
+                id: 'g:' + g.id,
+                rawId: g.id,
+                name: g.name,
+                done: g.status === 'done',
+            });
         }
     });
 
@@ -427,9 +439,17 @@ function computeSubtreeWidth(node) {
     node.subtreeWidth = Math.max(NODE_W, total);
 }
 
+function computeNodeHeight(node) {
+    if (node.type === 'area' && node.goals && node.goals.length) {
+        return NODE_H + PAD_GOALS + node.goals.length * GOAL_ROW_H;
+    }
+    return NODE_H;
+}
+
 function assignPositions(node, leftX, topY) {
+    node.h = computeNodeHeight(node);
     node.x = leftX + node.subtreeWidth / 2;
-    node.y = topY + NODE_H / 2;
+    node.y = topY + node.h / 2;
 
     const isCollapsed = _collapsedAreas.has(node.rawId) && node.type === 'area';
     if (!node.children.length || isCollapsed) return;
@@ -438,7 +458,7 @@ function assignPositions(node, leftX, topY) {
     const totalChildrenW = node.children.reduce((s, c, i) => s + c.subtreeWidth + (i ? gap : 0), 0);
     let cursor = leftX + (node.subtreeWidth - totalChildrenW) / 2;
     node.children.forEach(c => {
-        assignPositions(c, cursor, topY + NODE_H + V_GAP);
+        assignPositions(c, cursor, topY + node.h + V_GAP);
         cursor += c.subtreeWidth + gap;
     });
 }
@@ -502,9 +522,9 @@ function renderEdges(node) {
     let html = '';
     node.children.forEach(c => {
         const x1 = node.x;
-        const y1 = node.y + NODE_H / 2;
+        const y1 = node.y + (node.h || NODE_H) / 2;
         const x2 = c.x;
-        const y2 = c.y - NODE_H / 2;
+        const y2 = c.y - (c.h || NODE_H) / 2;
         const midY = (y1 + y2) / 2;
         html += `<path class="tree-edge" d="M ${x1} ${y1} C ${x1} ${midY}, ${x2} ${midY}, ${x2} ${y2}" />`;
         html += renderEdges(c);
@@ -526,52 +546,62 @@ function renderNodes(node) {
 
 function renderSingleNode(n) {
     const x = n.x - NODE_W / 2;
-    const y = n.y - NODE_H / 2;
+    const y = n.y - n.h / 2;
     const isCollapsed = n.type === 'area' && _collapsedAreas.has(n.rawId);
     const cls = ['tree-node'];
     if (n.type === 'root') cls.push('root');
-    if (n.done) cls.push('done');
     if (isCollapsed) cls.push('collapsed');
     if (selectedNodeId === n.id) cls.push('active');
 
     const sub = getNodeSubtitle(n);
+    const totalH = n.h;
 
     let inner = '';
-    if (n.type === 'goal') {
-        inner += `
-            <circle class="tn-check" cx="16" cy="${NODE_H / 2}" r="8" />
-            <path class="tn-check-mark" d="M 12 ${NODE_H / 2} L 15 ${NODE_H / 2 + 3} L 20 ${NODE_H / 2 - 3}" />
-            <text class="tn-name" x="32" y="${NODE_H / 2 - 2}">${escapeSvg(truncateName(n.name, 13))}</text>
-            ${sub ? `<text class="tn-sub" x="32" y="${NODE_H / 2 + 13}">${escapeSvg(truncateName(sub, 16))}</text>` : ''}
-        `;
-    } else {
-        inner += `
-            <text class="tn-name" x="${NODE_W / 2}" y="${sub ? NODE_H / 2 - 2 : NODE_H / 2 + 4}" text-anchor="middle">${escapeSvg(truncateName(n.name, 16))}</text>
-            ${sub ? `<text class="tn-sub" x="${NODE_W / 2}" y="${NODE_H / 2 + 13}" text-anchor="middle">${escapeSvg(truncateName(sub, 16))}</text>` : ''}
-        `;
+    inner += `
+        <text class="tn-name" x="${NODE_W / 2}" y="${sub ? NODE_H / 2 - 2 : NODE_H / 2 + 4}" text-anchor="middle">${escapeSvg(truncateName(n.name, 16))}</text>
+        ${sub ? `<text class="tn-sub" x="${NODE_W / 2}" y="${NODE_H / 2 + 13}" text-anchor="middle">${escapeSvg(truncateName(sub, 16))}</text>` : ''}
+    `;
+
+    // Цели — списком
+    let goalsHtml = '';
+    if (!isCollapsed && n.goals && n.goals.length) {
+        n.goals.forEach((g, i) => {
+            const gy = NODE_H + PAD_GOALS + i * GOAL_ROW_H;
+            const checkCls = g.done ? 'done' : '';
+            goalsHtml += `
+                <g class="tn-goal-row ${checkCls}" data-goal-id="${g.rawId}">
+                    <circle class="tn-goal-check ${checkCls}" cx="16" cy="${gy + GOAL_ROW_H / 2}" r="6" />
+                    <path class="tn-goal-check-mark" d="M 13 ${gy + GOAL_ROW_H / 2} L 15 ${gy + GOAL_ROW_H / 2 + 2} L 19 ${gy + GOAL_ROW_H / 2 - 2}" />
+                    <text class="tn-goal-name" x="28" y="${gy + GOAL_ROW_H / 2 + 4}">${escapeSvg(truncateName(g.name, 13))}</text>
+                </g>
+            `;
+        });
     }
 
     return `<g class="${cls.join(' ')}" data-node-id="${n.id}" transform="translate(${x} ${y})">
-        <rect class="tn-rect" width="${NODE_W}" height="${NODE_H}" rx="12" />
+        <rect class="tn-rect" width="${NODE_W}" height="${totalH}" rx="12" />
         ${inner}
+        ${goalsHtml}
     </g>`;
 }
 
 function getNodeSubtitle(n) {
-    if (n.type === 'root') {
-        return `${n.children.length} ${plural(n.children.length, 'ветка', 'ветки', 'веток')}`;
-    }
+    if (n.type === 'root') return '';
     if (n.type === 'area') {
-        const count = countGoals(n);
-        if (n.children.length === 0) return 'пусто';
-        return `${count} ${plural(count, 'цель', 'цели', 'целей')}`;
+        const subAreas = (n.children || []).length;
+        const ownGoals = (n.goals || []).length;
+        const parts = [];
+        if (ownGoals) parts.push(`${ownGoals} ${plural(ownGoals, 'цель', 'цели', 'целей')}`);
+        if (subAreas) parts.push(`${subAreas} ${plural(subAreas, 'ветка', 'ветки', 'веток')}`);
+        if (!parts.length) return 'пусто';
+        return parts.join(' · ');
     }
     return '';
 }
 
 function countGoals(node) {
     let c = 0;
-    if (node.type === 'goal') c++;
+    if (node.goals) c += node.goals.length;
     (node.children || []).forEach(ch => { c += countGoals(ch); });
     return c;
 }
@@ -669,8 +699,9 @@ function fitTree() {
 function computeTreeBBox() {
     let minX = Infinity, minY = Infinity, maxX = -Infinity, maxY = -Infinity;
     function visit(n) {
-        const x1 = n.x - NODE_W / 2, y1 = n.y - NODE_H / 2;
-        const x2 = n.x + NODE_W / 2, y2 = n.y + NODE_H / 2;
+        const h = n.h || NODE_H;
+        const x1 = n.x - NODE_W / 2, y1 = n.y - h / 2;
+        const x2 = n.x + NODE_W / 2, y2 = n.y + h / 2;
         minX = Math.min(minX, x1); minY = Math.min(minY, y1);
         maxX = Math.max(maxX, x2); maxY = Math.max(maxY, y2);
         const collapsed = n.type === 'area' && _collapsedAreas.has(n.rawId);
@@ -809,24 +840,21 @@ function initTreePointer() {
 
 function handleTap(clientX, clientY) {
     const el = document.elementFromPoint(clientX, clientY);
+
+    // Клик по цели внутри карточки
+    const goalEl = findGoalEl(el);
+    if (goalEl) {
+        const goalId = parseInt(goalEl.dataset.goalId);
+        const g = goalsFlat.find(x => x.id === goalId);
+        if (g) toggleGoalDone(g.id, g.status === 'done');
+        return;
+    }
+
     const nodeEl = findNodeEl(el);
     if (nodeEl) {
         const id = nodeEl.dataset.nodeId;
         const n = treeNodesById[id];
         if (!n) return;
-
-        // Клик по чекбоксу цели — toggle
-        if (n.type === 'goal') {
-            const rect = nodeEl.getBoundingClientRect();
-            const cx = clientX - rect.left;
-            const cy = clientY - rect.top;
-            // Чекбокс в левой части карточки (16px от левого края, ширина ~30px)
-            if (cx < 32) {
-                toggleGoalDone(n);
-                return;
-            }
-        }
-
         selectedNodeId = id;
         lastFocusedNodeId = id;
         cameraStack.push({ nodeId: id, x: camera.x, y: camera.y, scale: camera.scale });
@@ -838,6 +866,15 @@ function handleTap(clientX, clientY) {
         updateActionsBar();
         renderTree();
     }
+}
+
+function findGoalEl(el) {
+    const svg = document.getElementById('treeSvg');
+    while (el && el !== svg) {
+        if (el.dataset && el.dataset.goalId) return el;
+        el = el.parentNode;
+    }
+    return null;
 }
 
 function findNodeEl(el) {
@@ -912,9 +949,9 @@ function getPath(nodeId) {
 // ==========================================
 // ДЕЙСТВИЯ
 // ==========================================
-async function toggleGoalDone(n) {
+async function toggleGoalDone(goalId, isDone) {
     try {
-        await api(`/api/disc/goals/${n.rawId}`, 'PATCH', { status: n.done ? 'plan' : 'done' });
+        await api(`/api/disc/goals/${goalId}`, 'PATCH', { status: isDone ? 'plan' : 'done' });
         await loadAreas();
     } catch (e) { alert('Ошибка: ' + e.message); }
 }
