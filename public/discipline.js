@@ -307,73 +307,120 @@ async function deleteTodo() {
 }
 
 // ==========================================
-// ===== DISCIPLINE: ЦЕЛИ =====
+// ===== DISCIPLINE: ЦЕЛИ (дерево областей) =====
 // ==========================================
-let areas = [];
-let areaCtx = { id: null };
+let areasFlat = [];       // [{id, name, parent_id, ...}]
+let goalsFlat = [];       // [{id, name, area_id, status}]
+let areaCtx = { id: null, parentId: null };
 let goalCtx = { id: null, areaId: null };
 
 async function loadAreas() {
     try {
-        const { areas: d, orphanGoals } = await api('/api/disc/areas');
-        areas = d;
-        renderAreas(orphanGoals);
+        const { areas, goals } = await api('/api/disc/areas');
+        areasFlat = areas;
+        goalsFlat = goals;
+        renderAreas();
     } catch (e) { console.error(e); }
 }
 
-function renderAreas(orphans = []) {
+function renderAreas() {
     const c = document.getElementById('areasList');
-    if (!areas.length && !orphans.length) {
+    if (!areasFlat.length && !goalsFlat.length) {
         c.innerHTML = `<div class="empty-state">Нет областей. Нажми +</div>`;
         return;
     }
+    c.innerHTML = renderAreaChildren(null, 0) + renderOrphanGoals();
+    bindAreaSortable();
+}
 
-    c.innerHTML = areas.map(a => {
-        const isOpen = !isCollapsed('discAreas', a.id);
-        const done = a.goals.filter(g => g.status === 'done').length;
-        const prog = a.goals.length ? `${done}/${a.goals.length}` : '';
-        return `<div class="area-card ${isOpen ? 'open' : ''}" data-id="${a.id}">
-            <div class="group-header">
-                <span class="group-arrow" onclick="event.stopPropagation(); toggleCollapse('discAreas', ${a.id}); renderAreas();">▶</span>
-                <div class="group-name clickable" onclick="openAreaModal(${a.id})">${escapeHtml(a.name)}</div>
-                ${prog ? `<div class="group-progress">${prog}</div>` : ''}
-                <button class="btn-icon-add" onclick="openGoalModal(null, ${a.id})">+</button>
-            </div>
-            <div class="group-body">
-                ${a.goals.map(g => goalHTML(g)).join('')}
-            </div>
-        </div>`;
-    }).join('') + (orphans.length ? `<div class="area-card">
+function renderAreaChildren(parentId, depth) {
+    const kids = areasFlat.filter(a => (a.parent_id || null) === parentId);
+    return kids.map(a => renderAreaNode(a, depth)).join('');
+}
+
+function renderAreaNode(area, depth) {
+    const kids = areasFlat.filter(x => x.parent_id === area.id);
+    const goals = goalsFlat.filter(g => g.area_id === area.id);
+    const done = goals.filter(g => g.status === 'done').length;
+    const prog = goals.length ? `${done}/${goals.length}` : '';
+    const isOpen = !isCollapsed('discAreas', area.id);
+    const indent = depth * 16;
+
+    return `<div class="area-card area-depth-${depth} ${isOpen ? 'open' : ''}"
+                data-id="${area.id}"
+                style="margin-left:${indent}px;">
+        <div class="group-header">
+            <span class="group-arrow" onclick="event.stopPropagation(); toggleCollapse('discAreas', ${area.id}); renderAreas();">▶</span>
+            <div class="group-name clickable" onclick="openAreaModal(${area.id})">${escapeHtml(area.name)}</div>
+            ${prog ? `<div class="group-progress">${prog}</div>` : ''}
+            <button class="btn-icon-add" title="Добавить подобласть" onclick="openAreaModal(null, ${area.id})">+</button>
+            <button class="btn-icon-add" title="Добавить цель" onclick="openGoalModal(null, ${area.id})">✓</button>
+        </div>
+        <div class="group-body">
+            ${goals.map(g => goalHTML(g)).join('')}
+            ${renderAreaChildren(area.id, depth + 1)}
+        </div>
+    </div>`;
+}
+
+function renderOrphanGoals() {
+    const orphans = goalsFlat.filter(g => !g.area_id);
+    if (!orphans.length) return '';
+    return `<div class="area-card">
         <div class="group-header"><div class="group-name">Без области</div>
             <button class="btn-icon-add" onclick="openGoalModal(null, null)">+</button>
         </div>
         <div class="group-body">${orphans.map(g => goalHTML(g)).join('')}</div>
-    </div>` : '');
-
-    if (!c._sortable && window.Sortable) {
-        c._sortable = new Sortable(c, {
-            animation: 150, delay: 250, delayOnTouchOnly: true,
-            draggable: '.area-card[data-id]',
-            onEnd: async () => {
-                const ids = [...c.querySelectorAll('.area-card[data-id]')]
-                    .map(el => parseInt(el.dataset.id)).filter(Boolean);
-                if (ids.length) await api('/api/reorder', 'POST', { table: 'disc_areas', ids });
-            }
-        });
-    }
-
-    c.querySelectorAll('.group-body').forEach(body => {
-        if (!body.children.length) return;
-        makeSortable(body, 'disc_goals', { draggable: '[data-id]' });
-    });
+    </div>`;
 }
 
 function goalHTML(g) {
-    return `<div class="list-item" data-id="${g.id}" onclick="openGoalModal(${g.id}, ${g.area_id || 'null'})">
+    return `<div class="list-item" data-goal-id="${g.id}" onclick="openGoalModal(${g.id}, ${g.area_id || 'null'})">
         <div class="item-check ${g.status === 'done' ? 'done' : ''}" onclick="event.stopPropagation(); toggleGoal(${g.id}, '${g.status}')">✓</div>
         <div class="item-info"><div class="item-title ${g.status === 'done' ? 'done' : ''}">${escapeHtml(g.name)}</div></div>
         <button class="area-delete" onclick="event.stopPropagation(); deleteGoal(${g.id})">✕</button>
     </div>`;
+}
+
+function bindAreaSortable() {
+    const c = document.getElementById('areasList');
+    if (!c || !window.Sortable) return;
+
+    // Пересоздаём sortable для каждого group-body (цели внутри)
+    c.querySelectorAll('.group-body').forEach(body => {
+        if (body._sortable) body._sortable.destroy();
+        body._sortable = null;
+    });
+
+    // Sortable для корневых областей
+    if (c._sortable) c._sortable.destroy();
+    c._sortable = new Sortable(c, {
+        animation: 150, delay: 250, delayOnTouchOnly: true,
+        draggable: ':scope > .area-card[data-id]',
+        onEnd: async () => {
+            const ids = [...c.querySelectorAll(':scope > .area-card[data-id]')]
+                .map(el => parseInt(el.dataset.id)).filter(Boolean);
+            if (ids.length) await api('/api/reorder', 'POST', { table: 'disc_areas', ids });
+        }
+    });
+
+    // Sortable для вложенных областей (внутри .group-body)
+    c.querySelectorAll('.group-body').forEach(body => {
+        const directAreas = [...body.querySelectorAll(':scope > .area-card[data-id]')];
+        const directGoals = [...body.querySelectorAll(':scope > .list-item[data-goal-id]')];
+
+        if (directAreas.length) {
+            body._sortableAreas = new Sortable(body, {
+                animation: 150, delay: 250, delayOnTouchOnly: true,
+                draggable: ':scope > .area-card[data-id]',
+                onEnd: async () => {
+                    const ids = [...body.querySelectorAll(':scope > .area-card[data-id]')]
+                        .map(el => parseInt(el.dataset.id)).filter(Boolean);
+                    if (ids.length) await api('/api/reorder', 'POST', { table: 'disc_areas', ids });
+                }
+            });
+        }
+    });
 }
 
 async function toggleGoal(id, s) {
@@ -387,19 +434,45 @@ async function deleteGoal(id) {
     await loadAreas();
 }
 
-function openAreaModal(id = null) {
-    areaCtx = { id };
+// --- Область ---
+function openAreaModal(id = null, parentId = null) {
+    areaCtx = { id, parentId };
     const titleEl = document.getElementById('areaModalTitle');
     const nameEl = document.getElementById('areaName');
     const delBtn = document.getElementById('areaDeleteBtn');
+    const parentSel = document.getElementById('areaParentSelect');
+
+    // Собираем опции родителей (исключая себя и своих детей)
+    const excludeIds = new Set();
+    if (id) {
+        excludeIds.add(id);
+        let added = true;
+        while (added) {
+            added = false;
+            areasFlat.forEach(a => {
+                if (a.parent_id && excludeIds.has(a.parent_id) && !excludeIds.has(a.id)) {
+                    excludeIds.add(a.id);
+                    added = true;
+                }
+            });
+        }
+    }
+    const available = areasFlat.filter(a => !excludeIds.has(a.id));
+    parentSel.innerHTML = `<option value="">— Верхний уровень —</option>` +
+        available.map(a => `<option value="${a.id}">${escapeHtml(a.name)}</option>`).join('');
 
     if (id) {
-        const a = areas.find(x => x.id === id);
-        if (a) { titleEl.textContent = 'Редактировать область'; nameEl.value = a.name; }
+        const a = areasFlat.find(x => x.id === id);
+        if (a) {
+            titleEl.textContent = 'Редактировать область';
+            nameEl.value = a.name;
+            parentSel.value = a.parent_id || '';
+        }
         delBtn.style.display = 'block';
     } else {
-        titleEl.textContent = 'Новая область';
+        titleEl.textContent = parentId ? 'Новая подобласть' : 'Новая область';
         nameEl.value = '';
+        parentSel.value = parentId || '';
         delBtn.style.display = 'none';
     }
     openModal('areaModal');
@@ -410,9 +483,11 @@ function closeAreaModal() { closeModal('areaModal'); }
 async function saveArea() {
     const name = document.getElementById('areaName').value.trim();
     if (!name) return alert('Введи название');
+    const parentVal = document.getElementById('areaParentSelect').value;
+    const payload = { name, parent_id: parentVal ? parseInt(parentVal) : null };
     try {
-        if (areaCtx.id) await api(`/api/disc/areas/${areaCtx.id}`, 'PATCH', { name });
-        else await api('/api/disc/areas', 'POST', { name });
+        if (areaCtx.id) await api(`/api/disc/areas/${areaCtx.id}`, 'PATCH', payload);
+        else await api('/api/disc/areas', 'POST', payload);
         closeAreaModal();
         await loadAreas();
     } catch (e) { alert('Ошибка: ' + e.message); }
@@ -420,26 +495,35 @@ async function saveArea() {
 
 async function deleteAreaFromModal() {
     if (!areaCtx.id) return;
-    if (!confirm('Удалить область со всеми целями?')) return;
+    if (!confirm('Удалить область со всеми подобластями и целями?')) return;
     await api(`/api/disc/areas/${areaCtx.id}`, 'DELETE');
     closeAreaModal();
     await loadAreas();
 }
 
+// --- Цель ---
 function openGoalModal(id = null, areaId = null) {
     goalCtx = { id, areaId };
     const titleEl = document.getElementById('goalModalTitle');
     const nameEl = document.getElementById('goalName');
     const delBtn = document.getElementById('goalDeleteBtn');
+    const areaSel = document.getElementById('goalAreaSelect');
+
+    areaSel.innerHTML = `<option value="">— Без области —</option>` +
+        areasFlat.map(a => `<option value="${a.id}">${escapeHtml(a.name)}</option>`).join('');
 
     if (id) {
-        let found = null;
-        for (const a of areas) { const g = a.goals.find(x => x.id === id); if (g) { found = g; break; } }
-        if (found) { titleEl.textContent = 'Редактировать цель'; nameEl.value = found.name; }
+        const g = goalsFlat.find(x => x.id === id);
+        if (g) {
+            titleEl.textContent = 'Редактировать цель';
+            nameEl.value = g.name;
+            areaSel.value = g.area_id || '';
+        }
         delBtn.style.display = 'block';
     } else {
         titleEl.textContent = 'Новая цель';
         nameEl.value = '';
+        areaSel.value = areaId || '';
         delBtn.style.display = 'none';
     }
     openModal('goalModal');
@@ -450,9 +534,11 @@ function closeGoalModal() { closeModal('goalModal'); }
 async function saveGoal() {
     const name = document.getElementById('goalName').value.trim();
     if (!name) return alert('Введи название');
+    const areaVal = document.getElementById('goalAreaSelect').value;
+    const payload = { name, area_id: areaVal ? parseInt(areaVal) : null };
     try {
-        if (goalCtx.id) await api(`/api/disc/goals/${goalCtx.id}`, 'PATCH', { name });
-        else await api('/api/disc/goals', 'POST', { name, area_id: goalCtx.areaId });
+        if (goalCtx.id) await api(`/api/disc/goals/${goalCtx.id}`, 'PATCH', payload);
+        else await api('/api/disc/goals', 'POST', payload);
         closeGoalModal();
         await loadAreas();
     } catch (e) { alert('Ошибка: ' + e.message); }

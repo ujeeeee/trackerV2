@@ -145,26 +145,32 @@ router.delete('/todos/:id', authMiddleware, async (req, res) => {
 
 // ---------- ЦЕЛИ ----------
 router.get('/areas', authMiddleware, async (req, res) => {
-    const { data: areas } = await supabase.from('disc_areas').select('*').eq('tg_id', req.tg_id).order('sort_order').order('created_at');
-    const { data: goals } = await supabase.from('disc_goals').select('*').eq('tg_id', req.tg_id).order('sort_order').order('created_at');
-    const result = (areas || []).map(a => ({
-        ...a,
-        goals: (goals || []).filter(g => g.area_id === a.id),
-    }));
-    res.json({ areas: result, orphanGoals: (goals || []).filter(g => !g.area_id) });
+    const { data: areas } = await supabase.from('disc_areas').select('*')
+        .eq('tg_id', req.tg_id).order('sort_order').order('created_at');
+    const { data: goals } = await supabase.from('disc_goals').select('*')
+        .eq('tg_id', req.tg_id).order('sort_order').order('created_at');
+    res.json({
+        areas: areas || [],
+        goals: goals || [],
+    });
 });
 
 router.post('/areas', authMiddleware, async (req, res) => {
     const name = req.body.name?.trim();
     if (!name) return res.status(400).json({ error: 'Name required' });
-    const { data, error } = await supabase.from('disc_areas').insert({ tg_id: req.tg_id, name }).select().single();
+    const { data, error } = await supabase.from('disc_areas').insert({
+        tg_id: req.tg_id,
+        name,
+        parent_id: req.body.parent_id || null,
+    }).select().single();
     if (error) return res.status(500).json({ error: error.message });
-    res.json({ area: { ...data, goals: [] } });
+    res.json({ area: data });
 });
 
 router.patch('/areas/:id', authMiddleware, async (req, res) => {
     const updates = {};
     if (req.body.name !== undefined) updates.name = req.body.name.trim();
+    if (req.body.parent_id !== undefined) updates.parent_id = req.body.parent_id || null;
     const { data, error } = await supabase.from('disc_areas').update(updates)
         .eq('id', req.params.id).eq('tg_id', req.tg_id).select().single();
     if (error) return res.status(500).json({ error: error.message });
@@ -172,7 +178,23 @@ router.patch('/areas/:id', authMiddleware, async (req, res) => {
 });
 
 router.delete('/areas/:id', authMiddleware, async (req, res) => {
-    await supabase.from('disc_areas').delete().eq('id', req.params.id).eq('tg_id', req.tg_id);
+    // Собираем всех детей рекурсивно
+    const allIds = [Number(req.params.id)];
+    const { data: all } = await supabase.from('disc_areas').select('id, parent_id').eq('tg_id', req.tg_id);
+    let added = true;
+    while (added) {
+        added = false;
+        (all || []).forEach(a => {
+            if (a.parent_id && allIds.includes(a.parent_id) && !allIds.includes(a.id)) {
+                allIds.push(a.id);
+                added = true;
+            }
+        });
+    }
+    // Удаляем цели во всех этих областях
+    await supabase.from('disc_goals').delete().eq('tg_id', req.tg_id).in('area_id', allIds);
+    // Удаляем сами области
+    await supabase.from('disc_areas').delete().eq('tg_id', req.tg_id).in('id', allIds);
     res.json({ ok: true });
 });
 
@@ -188,7 +210,7 @@ router.post('/goals', authMiddleware, async (req, res) => {
 
 router.patch('/goals/:id', authMiddleware, async (req, res) => {
     const updates = {};
-    ['name','status','deadline','note'].forEach(k => {
+    ['name','status','deadline','note','area_id'].forEach(k => {
         if (req.body[k] !== undefined) updates[k] = req.body[k];
     });
     const { data, error } = await supabase.from('disc_goals').update(updates)

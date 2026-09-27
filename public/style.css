@@ -1703,3 +1703,29 @@ textarea.modal-input {
     border: 1px solid var(--glass-border);
     opacity: 0.2;
 }
+
+/* ==========================================
+   AREAS: вложенное дерево
+   ========================================== */
+.area-card.area-depth-1 {
+    background: var(--bg-secondary);
+    border-color: transparent;
+    border-radius: 14px;
+}
+.area-card.area-depth-2 {
+    background: transparent;
+    border: 1px dashed var(--glass-border);
+    border-radius: 12px;
+}
+.area-card.area-depth-3,
+.area-card.area-depth-4 {
+    background: transparent;
+    border: none;
+    padding: 6px 0 0;
+    border-radius: 0;
+}
+.area-card.area-depth-1 > .group-header .group-name,
+.area-card.area-depth-2 > .group-header .group-name {
+    font-size: 14px;
+    font-weight: 600;
+}

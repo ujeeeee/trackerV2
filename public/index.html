@@ -537,6 +537,8 @@
         <h3 class="modal-title" id="areaModalTitle">Новая область</h3>
         <div class="field-label">Название</div>
         <input type="text" class="modal-input" id="areaName" placeholder="Например: Спорт" />
+        <div class="field-label">Родительская область</div>
+            <select class="modal-input modal-select" id="areaParentSelect"></select>
         <div class="modal-actions">
             <button class="modal-btn danger" id="areaDeleteBtn" style="display:none;" onclick="deleteAreaFromModal()">Удалить</button>
             <button class="modal-btn secondary" onclick="closeAreaModal()">Отмена</button>
@@ -552,6 +554,8 @@
         <h3 class="modal-title" id="goalModalTitle">Новая цель</h3>
         <div class="field-label">Название</div>
         <input type="text" class="modal-input" id="goalName" placeholder="Например: кмс" />
+        <div class="field-label">Область</div>
+            <select class="modal-input modal-select" id="goalAreaSelect"></select>
         <div class="modal-actions">
             <button class="modal-btn danger" id="goalDeleteBtn" style="display:none;" onclick="deleteGoalFromModal()">Удалить</button>
             <button class="modal-btn secondary" onclick="closeGoalModal()">Отмена</button>
