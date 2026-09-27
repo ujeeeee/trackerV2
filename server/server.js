@@ -396,33 +396,72 @@ app.post('/api/import/discipline', authMiddleware, async (req, res) => {
     const { text } = req.body;
     if (!text?.trim()) return res.status(400).json({ error: 'Text required' });
     const lines = text.split('\n').map(l => l.trim()).filter(Boolean);
-    let currentAreaId = null, added = 0, areasAdded = 0;
 
-    const { data: existing } = await supabase.from('disc_areas').select('id, name').eq('tg_id', req.tg_id);
-    const areaMap = {};
-    (existing || []).forEach(a => { areaMap[a.name.toLowerCase()] = a.id; });
+    // Загружаем существующие области
+    const { data: existing } = await supabase.from('disc_areas').select('id, name, parent_id').eq('tg_id', req.tg_id);
+    const areaMap = {};  // "путь" -> id
+    (existing || []).forEach(a => {
+        // ключ формируем по имени (простой вариант)
+        areaMap[a.name.toLowerCase()] = a.id;
+    });
+
+    // Иерархия: массив текущих id по уровням
+    // levels[1] = id верхнеуровневой области (# ...)
+    // levels[2] = id подобласти (## ...)
+    // и т.д.
+    const levels = {};
+    let added = 0, areasAdded = 0;
 
     for (const line of lines) {
-        if (line.startsWith('#')) {
-            const name = line.replace(/^#\s*/, '').trim();
+        // Строка вида "# Область", "## Подобласть", "### Под-подобласть"
+        const m = line.match(/^(#{1,9})\s*(.+)$/);
+        if (m) {
+            const depth = m[1].length;
+            const name = m[2].trim();
             if (!name) continue;
+
+            // Родитель — ближайший предыдущий уровень
+            const parentId = depth > 1 ? (levels[depth - 1] || null) : null;
+
+            // Проверяем, есть ли уже такая область с таким родителем
             const key = name.toLowerCase();
-            if (areaMap[key]) currentAreaId = areaMap[key];
-            else {
-                const { data: a } = await supabase.from('disc_areas').insert({
-                    tg_id: req.tg_id, name,
+            let id = areaMap[key];
+
+            if (id) {
+                // Уже существует — используем и запоминаем
+                levels[depth] = id;
+                // Обнуляем более глубокие уровни
+                Object.keys(levels).forEach(k => { if (parseInt(k) > depth) delete levels[k]; });
+            } else {
+                const { data: a, error } = await supabase.from('disc_areas').insert({
+                    tg_id: req.tg_id, name, parent_id: parentId,
                 }).select().single();
-                if (a) { currentAreaId = a.id; areaMap[key] = a.id; areasAdded++; }
+                if (!error && a) {
+                    id = a.id;
+                    areaMap[key] = id;
+                    levels[depth] = id;
+                    Object.keys(levels).forEach(k => { if (parseInt(k) > depth) delete levels[k]; });
+                    areasAdded++;
+                }
             }
             continue;
         }
+
+        // Обычная строка → цель в текущей области (последний уровень)
         const name = line.split('|')[0].trim();
         if (!name) continue;
+
+        // Находим текущий уровень — самый глубокий
+        let currentAreaId = null;
+        const depths = Object.keys(levels).map(Number).sort((a, b) => b - a);
+        if (depths.length) currentAreaId = levels[depths[0]];
+
         const { error } = await supabase.from('disc_goals').insert({
             tg_id: req.tg_id, name, area_id: currentAreaId, status: 'plan',
         });
         if (!error) added++;
     }
+
     res.json({ added, groupsAdded: areasAdded });
 });
 

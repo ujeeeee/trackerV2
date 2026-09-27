@@ -863,18 +863,19 @@ function initTreePointer() {
         _pointers.delete(e.pointerId);
         if (_pointers.size === 0) { _panStart = null; _pinchStart = null; }
     });
-    initGoalDrag();
 }
 
 function handleTap(clientX, clientY) {
     const el = document.elementFromPoint(clientX, clientY);
 
+    // 1. Сворачивание списка целей
     const toggleEl = findElWithDataset(el, 'toggleGoals');
     if (toggleEl) {
         toggleGoalsCollapsed(parseInt(toggleEl.dataset.toggleGoals));
         return;
     }
 
+    // 2. Чекбокс цели
     const checkEl = findElWithDataset(el, 'toggleGoal');
     if (checkEl) {
         const goalId = parseInt(checkEl.dataset.toggleGoal);
@@ -883,18 +884,16 @@ function handleTap(clientX, clientY) {
         return;
     }
 
-    const editEl = findElWithDataset(el, 'editGoal');
-    if (editEl) {
-        openGoalModal(parseInt(editEl.dataset.editGoal), parseInt(editEl.dataset.goalArea));
+    // 3. Название или строка цели → редактирование
+    const goalEl = findElWithDataset(el, 'editGoal') || findElWithDataset(el, 'dragGoal');
+    if (goalEl) {
+        const goalId = parseInt(goalEl.dataset.editGoal || goalEl.dataset.dragGoal);
+        const areaId = parseInt(goalEl.dataset.goalArea || goalEl.dataset.dragArea);
+        openGoalModal(goalId, areaId);
         return;
     }
 
-    const dragEl = findElWithDataset(el, 'dragGoal');
-    if (dragEl) {
-        openGoalModal(parseInt(dragEl.dataset.dragGoal), parseInt(dragEl.dataset.dragArea));
-        return;
-    }
-
+    // 4. Нода области
     const nodeEl = findNodeEl(el);
     if (nodeEl) {
         const id = nodeEl.dataset.nodeId;
@@ -1359,144 +1358,4 @@ async function moveGoal(direction) {
     } catch (e) { alert('Ошибка: ' + e.message); }
 
     
-}
-
-// ==========================================
-// GOAL DRAG & DROP
-// ==========================================
-let _goalDrag = null;
-
-function initGoalDrag() {
-    const svg = document.getElementById('treeSvg');
-    if (!svg || svg._dragInited) return;
-    svg._dragInited = true;
-
-    svg.addEventListener('pointerdown', onGoalDragDown, true);
-    svg.addEventListener('pointermove', onGoalDragMove, true);
-    svg.addEventListener('pointerup', onGoalDragUp, true);
-    svg.addEventListener('pointercancel', onGoalDragCancel, true);
-}
-
-function onGoalDragDown(e) {
-    const el = e.target;
-    if (!el.closest) return;
-    const goalRow = el.closest('[data-drag-goal]');
-    if (!goalRow) return;
-
-    _goalDrag = {
-        pointerId: e.pointerId,
-        goalId: parseInt(goalRow.dataset.dragGoal),
-        areaId: parseInt(goalRow.dataset.dragArea),
-        el: goalRow,
-        startX: e.clientX,
-        startY: e.clientY,
-        started: false,
-        ghost: null,
-    };
-    try { svg.setPointerCapture(e.pointerId); } catch (err) {}
-    e.stopImmediatePropagation();
-    e.preventDefault();
-}
-
-function onGoalDragMove(e) {
-    if (!_goalDrag || _goalDrag.pointerId !== e.pointerId) return;
-    e.stopImmediatePropagation();
-    const dy = e.clientY - _goalDrag.startY;
-    const dx = e.clientX - _goalDrag.startX;
-
-    if (!_goalDrag.started) {
-        if (Math.abs(dy) < 8 && Math.abs(dx) < 8) return;
-        startGoalDragVisual();
-    }
-    moveGoalGhost(e.clientX, e.clientY);
-}
-
-function onGoalDragUp(e) {
-    if (!_goalDrag || _goalDrag.pointerId !== e.pointerId) return;
-    e.stopImmediatePropagation();
-
-    if (_goalDrag.started) {
-        const targetIdx = computeGoalDropIndex(_goalDrag.areaId, e.clientY);
-        finishGoalDrag(targetIdx);
-    } else {
-        cleanupGoalDrag();
-    }
-}
-
-function onGoalDragCancel(e) {
-    if (!_goalDrag || _goalDrag.pointerId !== e.pointerId) return;
-    cleanupGoalDrag();
-}
-
-function startGoalDragVisual() {
-    _goalDrag.started = true;
-    _goalDrag.el.classList.add('dragging-goal');
-    const g = goalsFlat.find(x => x.id === _goalDrag.goalId);
-    const ghost = document.createElement('div');
-    ghost.className = 'goal-drag-ghost';
-    ghost.textContent = g ? g.name : '';
-    document.body.appendChild(ghost);
-    _goalDrag.ghost = ghost;
-}
-
-function moveGoalGhost(x, y) {
-    if (!_goalDrag || !_goalDrag.ghost) return;
-    _goalDrag.ghost.style.left = (x + 12) + 'px';
-    _goalDrag.ghost.style.top = (y - 14) + 'px';
-}
-
-function computeGoalDropIndex(areaId, clientY) {
-    const areaEl = document.querySelector(`g[data-node-id="a:${areaId}"]`);
-    if (!areaEl) return 0;
-    const goalEls = areaEl.querySelectorAll('.tn-goal-row');
-    for (let i = 0; i < goalEls.length; i++) {
-        const r = goalEls[i].getBoundingClientRect();
-        const midY = r.top + r.height / 2;
-        if (clientY < midY) return i;
-    }
-    return goalEls.length;
-}
-
-async function finishGoalDrag(targetIdx) {
-    const areaId = _goalDrag.areaId;
-    const goalId = _goalDrag.goalId;
-    cleanupGoalDrag();
-
-    const areaNode = treeNodesById['a:' + areaId];
-    if (!areaNode || !areaNode.goals) return;
-    const sourceIdx = areaNode.goals.findIndex(g => g.id === goalId);
-    if (sourceIdx < 0) return;
-    let insertIdx = targetIdx;
-    if (insertIdx > sourceIdx) insertIdx -= 1;
-    if (insertIdx === sourceIdx) return;
-
-    const newOrder = [...areaNode.goals];
-    const [moved] = newOrder.splice(sourceIdx, 1);
-    newOrder.splice(insertIdx, 0, moved);
-
-    try {
-        await api('/api/reorder', 'POST', {
-            table: 'disc_goals',
-            ids: newOrder.map(g => g.rawId),
-        });
-        await loadAreas();
-    } catch (e) { alert('Ошибка: ' + e.message); }
-}
-
-function cleanupGoalDrag() {
-    if (!_goalDrag) return;
-    if (_goalDrag.ghost) _goalDrag.ghost.remove();
-    if (_goalDrag.el) _goalDrag.el.classList.remove('dragging-goal');
-    _goalDrag = null;
-}
-
-function handleGoalTapAt(x, y, goalId, areaId) {
-    const el = document.elementFromPoint(x, y);
-    const checkEl = findElWithDataset(el, 'toggleGoal');
-    if (checkEl) {
-        const g = goalsFlat.find(x => x.id === goalId);
-        if (g) toggleGoalDone(goalId, g.status === 'done');
-        return;
-    }
-    openGoalModal(goalId, areaId);
 }
