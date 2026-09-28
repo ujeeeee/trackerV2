@@ -12,7 +12,6 @@ let currentScreenIndex = 0;
 const COLLAPSE_KEYS = [
     'filmGenres', 'filmWatched', 'teaGroups',
     'placesWant', 'placesVisited', 'discAreas', 'wishlistAreas',
-    'foodCategories',
 ];
 
 const collapsed = {};
@@ -95,11 +94,10 @@ function rerenderCurrent() {
     if (i === 0) return;
     if (i === 1) { renderAreas(); renderTodos(); renderWeek(habits); }
     if (i === 2) renderPrograms();
-    if (i === 3) renderFoodRecipes();
-    if (i === 4) { renderBudget(cashBudget); renderWishlist(); renderPiggy(); }
-    if (i === 5) { renderPlacesWant(); renderPlacesVisited(); }
-    if (i === 6) { renderFilmGenres(); renderFilmWatched(); }
-    if (i === 7) { renderTea(); renderTeaShops(); }
+    if (i === 3) { renderBudget(cashBudget); renderWishlist(); renderPiggy(); }
+    if (i === 4) { renderPlacesWant(); renderPlacesVisited(); }
+    if (i === 5) { renderFilmGenres(); renderFilmWatched(); }
+    if (i === 6) { renderTea(); renderTeaShops(); }
 }
 
 // ==========================================

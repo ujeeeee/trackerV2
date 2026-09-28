@@ -579,3 +579,343 @@ async function saveFact() {
         await loadPiggy();
     } catch (e) { alert('Ошибка: ' + e.message); }
 }
+
+// ==========================================
+// CASH: ПРОДУКТЫ
+// ==========================================
+let cashProducts = [];
+let cashProductCtx = { id: null, unit: 'г' };
+
+async function loadCashProducts() {
+    try {
+        const { products } = await api('/api/cash/products');
+        cashProducts = products;
+    } catch (e) { console.error(e); }
+}
+
+function openShoppingProducts() {
+    loadCashProducts().then(() => {
+        renderCashProductsList();
+        openModal('cashProductsListModal');
+    });
+}
+
+function renderCashProductsList() {
+    const c = document.getElementById('cashProductsList');
+    if (!cashProducts.length) {
+        c.innerHTML = `<div class="widget-empty">Нет продуктов</div>`;
+        return;
+    }
+    c.innerHTML = cashProducts.map(p => `<div class="list-item" onclick="closeModal('cashProductsListModal'); openCashProductModal(${p.id})">
+        <div class="item-info">
+            <div class="item-title">${escapeHtml(p.name)}</div>
+            <div class="item-sub">${p.pack_amount} ${p.pack_unit}${p.pack_price ? ' · ' + p.pack_price + ' ₽' : ''}</div>
+        </div>
+    </div>`).join('');
+}
+
+function openCashProductModal(id = null) {
+    cashProductCtx = { id, unit: 'г' };
+    const title = document.getElementById('cashProductTitle');
+    const nameEl = document.getElementById('cashProductName');
+    const amountEl = document.getElementById('cashProductAmount');
+    const priceEl = document.getElementById('cashProductPrice');
+    const delBtn = document.getElementById('cashProductDeleteBtn');
+
+    if (id) {
+        const p = cashProducts.find(x => x.id === id);
+        if (p) {
+            title.textContent = 'Продукт';
+            nameEl.value = p.name;
+            amountEl.value = p.pack_amount;
+            priceEl.value = p.pack_price || '';
+            cashProductCtx.unit = p.pack_unit;
+        }
+        delBtn.style.display = 'block';
+    } else {
+        title.textContent = 'Новый продукт';
+        nameEl.value = '';
+        amountEl.value = '';
+        priceEl.value = '';
+        delBtn.style.display = 'none';
+    }
+    document.querySelectorAll('#cashProductUnit [data-v]').forEach(b =>
+        b.classList.toggle('active', b.dataset.v === cashProductCtx.unit));
+    openModal('cashProductModal');
+    setTimeout(() => nameEl.focus(), 200);
+}
+
+function pickCashUnit(v, btn) {
+    cashProductCtx.unit = v;
+    document.querySelectorAll('#cashProductUnit [data-v]').forEach(b => b.classList.remove('active'));
+    btn.classList.add('active');
+}
+
+async function saveCashProduct() {
+    const name = document.getElementById('cashProductName').value.trim();
+    if (!name) return alert('Введи название');
+    const payload = {
+        name,
+        pack_amount: document.getElementById('cashProductAmount').value,
+        pack_unit: cashProductCtx.unit,
+        pack_price: document.getElementById('cashProductPrice').value,
+    };
+    try {
+        if (cashProductCtx.id) await api(`/api/cash/products/${cashProductCtx.id}`, 'PATCH', payload);
+        else await api('/api/cash/products', 'POST', payload);
+        closeModal('cashProductModal');
+        await loadCashProducts();
+        if (document.getElementById('cashProductsListModal').classList.contains('open')) renderCashProductsList();
+        if (dishCtx.id) await reloadDishIngredients();
+    } catch (e) { alert('Ошибка: ' + e.message); }
+}
+
+async function deleteCashProductFromModal() {
+    if (!cashProductCtx.id) return;
+    if (!confirm('Удалить продукт? Он исчезнет из всех блюд.')) return;
+    await api(`/api/cash/products/${cashProductCtx.id}`, 'DELETE');
+    closeModal('cashProductModal');
+    await loadCashProducts();
+    renderCashProductsList();
+    if (dishCtx.id) await reloadDishIngredients();
+}
+
+// ==========================================
+// CASH: БЛЮДА
+// ==========================================
+let dishes = [];
+let dishCtx = { id: null };
+let dishIngProductId = null;
+
+async function loadDishes() {
+    try {
+        const { dishes: d } = await api('/api/cash/dishes');
+        dishes = d;
+        renderDishes();
+    } catch (e) { console.error(e); }
+}
+
+function renderDishes() {
+    const c = document.getElementById('dishesList');
+    if (!dishes.length) {
+        c.innerHTML = `<div class="widget-empty">Нет блюд. Нажми +</div>`;
+        return;
+    }
+    c.innerHTML = dishes.map(d => `<div class="todo-item" onclick="openDishModal(${d.id})">
+        <div class="todo-body">
+            <div class="todo-name">${escapeHtml(d.name)}</div>
+            <div class="todo-meta">${d.ingredients.length} ингр.${d.recipe ? ' · есть рецепт' : ''}</div>
+        </div>
+        <button class="btn-icon-add" onclick="event.stopPropagation(); openAddToBasket(${d.id})">🛒</button>
+    </div>`).join('');
+}
+
+function openDishModal(id = null) {
+    dishCtx = { id };
+    const title = document.getElementById('dishTitle');
+    const nameEl = document.getElementById('dishName');
+    const recipeEl = document.getElementById('dishRecipe');
+    const delBtn = document.getElementById('dishDeleteBtn');
+
+    if (id) {
+        const d = dishes.find(x => x.id === id);
+        if (d) {
+            title.textContent = 'Блюдо';
+            nameEl.value = d.name;
+            recipeEl.value = d.recipe || '';
+        }
+        delBtn.style.display = 'block';
+    } else {
+        title.textContent = 'Новое блюдо';
+        nameEl.value = '';
+        recipeEl.value = '';
+        delBtn.style.display = 'none';
+    }
+    renderDishIngredients();
+    openModal('dishModal');
+    setTimeout(() => nameEl.focus(), 200);
+}
+
+function renderDishIngredients() {
+    const c = document.getElementById('dishIngredients');
+    if (!dishCtx.id) {
+        c.innerHTML = `<div class="widget-empty" style="padding:4px 0;">Сохрани блюдо, чтобы добавить ингредиенты</div>`;
+        return;
+    }
+    const d = dishes.find(x => x.id === dishCtx.id);
+    if (!d || !d.ingredients.length) {
+        c.innerHTML = `<div class="widget-empty" style="padding:4px 0;">Нет ингредиентов</div>`;
+        return;
+    }
+    c.innerHTML = d.ingredients.map(ing => `<div class="list-item" style="padding:6px 4px;">
+        <div class="item-info">
+            <div class="item-title">${escapeHtml(ing.product?.name || '—')}</div>
+            <div class="item-sub">${ing.amount} ${ing.product?.pack_unit || ''}</div>
+        </div>
+        <button class="area-delete" onclick="deleteDishIngredient(${ing.id})">✕</button>
+    </div>`).join('');
+}
+
+async function reloadDishIngredients() {
+    const { dishes: d } = await api('/api/cash/dishes');
+    dishes = d;
+    renderDishIngredients();
+    renderDishes();
+}
+
+async function saveDish() {
+    const name = document.getElementById('dishName').value.trim();
+    if (!name) return alert('Введи название');
+    const payload = { name, recipe: document.getElementById('dishRecipe').value || null };
+    try {
+        if (dishCtx.id) {
+            await api(`/api/cash/dishes/${dishCtx.id}`, 'PATCH', payload);
+        } else {
+            const r = await api('/api/cash/dishes', 'POST', payload);
+            dishCtx.id = r.dish.id;
+        }
+        closeModal('dishModal');
+        await loadDishes();
+    } catch (e) { alert('Ошибка: ' + e.message); }
+}
+
+async function deleteDishFromModal() {
+    if (!dishCtx.id) return;
+    if (!confirm('Удалить блюдо?')) return;
+    await api(`/api/cash/dishes/${dishCtx.id}`, 'DELETE');
+    closeModal('dishModal');
+    await loadDishes();
+    loadShopping();
+}
+
+// ---------- Ингредиент блюда ----------
+function openDishIngredientModal() {
+    if (!dishCtx.id) return alert('Сначала сохрани блюдо');
+    dishIngProductId = null;
+    document.getElementById('dishIngSearch').value = '';
+    document.getElementById('dishIngAmount').value = '';
+    renderDishIngProducts();
+    openModal('dishIngredientModal');
+}
+
+function renderDishIngProducts() {
+    const c = document.getElementById('dishIngProducts');
+    const q = document.getElementById('dishIngSearch').value.trim().toLowerCase();
+    const list = cashProducts.filter(p => !q || p.name.toLowerCase().includes(q));
+    if (!list.length) {
+        c.innerHTML = `<div class="widget-empty">Нет продуктов</div>`;
+        return;
+    }
+    c.innerHTML = list.map(p => `<div class="food-picker-item ${dishIngProductId === p.id ? 'active' : ''}" onclick="pickDishIngProduct(${p.id})">
+        <div class="food-picker-name">${escapeHtml(p.name)}</div>
+        <div class="food-picker-meta">${p.pack_amount} ${p.pack_unit}${p.pack_price ? ' · ' + p.pack_price + ' ₽' : ''}</div>
+    </div>`).join('');
+}
+
+function pickDishIngProduct(id) {
+    dishIngProductId = id;
+    renderDishIngProducts();
+}
+
+async function saveDishIngredient() {
+    if (!dishIngProductId) return alert('Выбери продукт');
+    const amount = document.getElementById('dishIngAmount').value;
+    if (!amount) return alert('Введи количество');
+    try {
+        await api(`/api/cash/dishes/${dishCtx.id}/ingredients`, 'POST', {
+            product_id: dishIngProductId, amount,
+        });
+        closeModal('dishIngredientModal');
+        await reloadDishIngredients();
+    } catch (e) { alert('Ошибка: ' + e.message); }
+}
+
+async function deleteDishIngredient(id) {
+    if (!confirm('Удалить ингредиент?')) return;
+    await api(`/api/cash/ingredients/${id}`, 'DELETE');
+    await reloadDishIngredients();
+}
+
+// ==========================================
+// CASH: КОРЗИНА / СПИСОК ПОКУПОК
+// ==========================================
+let basketDishCtx = { id: null };
+let shoppingBasket = [];
+
+function openAddToBasket(dishId) {
+    basketDishCtx = { id: dishId };
+    const d = dishes.find(x => x.id === dishId);
+    document.getElementById('addToBasketTitle').textContent = d ? d.name : 'Добавить';
+    const existing = shoppingBasket.find(b => b.dish_id === dishId);
+    document.getElementById('addToBasketPortions').value = existing ? existing.portions : 1;
+    openModal('addToBasketModal');
+    setTimeout(() => document.getElementById('addToBasketPortions').select(), 200);
+}
+
+async function saveToBasket() {
+    const portions = Number(document.getElementById('addToBasketPortions').value) || 1;
+    try {
+        await api('/api/cash/shopping', 'POST', {
+            dish_id: basketDishCtx.id, portions,
+        });
+        closeModal('addToBasketModal');
+        await loadShopping();
+    } catch (e) { alert('Ошибка: ' + e.message); }
+}
+
+async function loadShopping() {
+    try {
+        const data = await api('/api/cash/shopping');
+        shoppingBasket = data.basket;
+        renderShoppingBasket(data);
+    } catch (e) { console.error(e); }
+}
+
+function renderShoppingBasket(data) {
+    const bc = document.getElementById('shoppingBasket');
+    const ic = document.getElementById('shoppingItems');
+
+    if (!data.basket.length) {
+        bc.innerHTML = `<div class="widget-empty">Пусто. Нажми 🛒 у блюда</div>`;
+        ic.innerHTML = '';
+        return;
+    }
+
+    bc.innerHTML = data.basket.map(b => `<div class="cash-item">
+        <div class="cash-item-name">${escapeHtml(b.dish_name)}</div>
+        <div class="cash-item-amount">${b.portions} порц.</div>
+        <button class="area-delete" onclick="removeFromBasket(${b.id})">✕</button>
+    </div>`).join('');
+
+    if (!data.items.length) {
+        ic.innerHTML = '';
+        return;
+    }
+
+    ic.innerHTML = `<div class="widget">
+        <div class="widget-title"><span>Купить</span></div>
+        ${data.items.map(it => `<div class="cash-item ${it.checked ? 'paid' : ''}" onclick="toggleShoppingCheck(${it.product.id})">
+            <div class="cash-item-check ${it.checked ? 'done' : ''}">✓</div>
+            <div class="cash-item-name">${escapeHtml(it.product.name)}</div>
+            <div class="cash-item-amount">${it.amount} ${it.product.pack_unit}${it.cost ? ' · ' + Math.round(it.cost) + ' ₽' : ''}</div>
+        </div>`).join('')}
+        ${data.total ? `<div class="cash-total">Итого: <b>${Math.round(data.total)} ₽</b></div>` : ''}
+    </div>`;
+}
+
+async function removeFromBasket(id) {
+    await api(`/api/cash/shopping/${id}`, 'DELETE');
+    await loadShopping();
+}
+
+async function toggleShoppingCheck(productId) {
+    await api(`/api/cash/shopping/check/${productId}`, 'POST');
+    await loadShopping();
+}
+
+async function clearShoppingList() {
+    if (!shoppingBasket.length) return;
+    if (!confirm('Очистить весь список покупок?')) return;
+    await api('/api/cash/shopping', 'DELETE');
+    await loadShopping();
+}

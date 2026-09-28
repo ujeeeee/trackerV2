@@ -51,7 +51,6 @@ app.use('/api/gym', require('./routes/gym'));
 app.use('/api/film', require('./routes/film'));
 app.use('/api/tea', require('./routes/tea'));
 app.use('/api/places', require('./routes/places'));
-app.use('/api/food', require('./routes/food'));
 
 // ---------- REORDER ----------
 const REORDER_WHITELIST = [
@@ -81,13 +80,13 @@ app.post('/api/reorder', authMiddleware, async (req, res) => {
 const BACKUP_SECTIONS = {
     discipline: ['disc_areas','disc_goals','disc_habits','disc_habit_logs','disc_todos'],
     cash: ['cash_budget','cash_custom_stats','cash_subs','cash_weekly','cash_expenses',
-           'cash_wishlist_areas','cash_wishlist','cash_piggy','cash_piggy_settings'],
+        'cash_wishlist_areas','cash_wishlist','cash_piggy','cash_piggy_settings',
+        'cash_products','cash_dishes','cash_dish_ingredients','cash_shopping_basket',
+        'cash_shopping_checked'],
     gym: ['gym_metrics','gym_metric_logs','gym_programs','gym_program_days','gym_exercises','gym_exercise_sets'],
     film: ['film_genres','film_movies'],
     tea: ['tea_groups','tea_items','tea_shops'],
     places: ['places_types','places_items'],
-    food: ['food_recipe_categories','food_products','food_recipes','food_recipe_ingredients',
-           'food_plan','food_diary','food_goals'],
 };
 
 async function collectBackup(tgId, sections) {
@@ -463,78 +462,6 @@ app.post('/api/import/discipline', authMiddleware, async (req, res) => {
     }
 
     res.json({ added, groupsAdded: areasAdded });
-});
-
-// ---------- Импорт продуктов ----------
-app.post('/api/import/food-products', authMiddleware, async (req, res) => {
-    const { text } = req.body;
-    if (!text?.trim()) return res.status(400).json({ error: 'Text required' });
-    const lines = text.split('\n').map(l => l.trim()).filter(Boolean);
-    let added = 0;
-
-    for (const line of lines) {
-        const parts = line.split('|').map(p => p.trim());
-        const name = parts[0];
-        if (!name) continue;
-        const unit = parts[1] || 'г';
-        const { error } = await supabase.from('food_products').insert({
-            tg_id: req.tg_id,
-            name,
-            unit,
-            kcal: Number(parts[2]) || 0,
-            protein: Number(parts[3]) || 0,
-            fat: Number(parts[4]) || 0,
-            carbs: Number(parts[5]) || 0,
-            price: Number(parts[6]) || 0,
-            price_amount: Number(parts[7]) || 100,
-        });
-        if (!error) added++;
-    }
-    res.json({ added });
-});
-
-// ---------- Импорт рецептов ----------
-app.post('/api/import/food-recipes', authMiddleware, async (req, res) => {
-    const { text } = req.body;
-    if (!text?.trim()) return res.status(400).json({ error: 'Text required' });
-    const lines = text.split('\n').map(l => l.trim()).filter(Boolean);
-    let currentCategoryId = null, added = 0, categoriesAdded = 0;
-
-    const { data: existing } = await supabase.from('food_recipe_categories').select('id, name').eq('tg_id', req.tg_id);
-    const catMap = {};
-    (existing || []).forEach(c => { catMap[c.name.toLowerCase()] = c.id; });
-
-    const { data: maxC } = await supabase.from('food_recipe_categories').select('sort_order').eq('tg_id', req.tg_id)
-        .order('sort_order', { ascending: false }).limit(1).maybeSingle();
-    let catOrder = (maxC?.sort_order || 0) + 1;
-
-    for (const line of lines) {
-        if (line.startsWith('#')) {
-            const name = line.replace(/^#\s*/, '').trim();
-            if (!name) continue;
-            const key = name.toLowerCase();
-            if (catMap[key]) currentCategoryId = catMap[key];
-            else {
-                const { data: c } = await supabase.from('food_recipe_categories').insert({
-                    tg_id: req.tg_id, name, sort_order: catOrder++,
-                }).select().single();
-                if (c) { currentCategoryId = c.id; catMap[key] = c.id; categoriesAdded++; }
-            }
-            continue;
-        }
-        const parts = line.split('|').map(p => p.trim());
-        const name = parts[0];
-        if (!name) continue;
-        const { error } = await supabase.from('food_recipes').insert({
-            tg_id: req.tg_id,
-            name,
-            category_id: currentCategoryId,
-            portions: Number(parts[1]) || 1,
-            instructions: parts[2] || null,
-        });
-        if (!error) added++;
-    }
-    res.json({ added, groupsAdded: categoriesAdded });
 });
 
 // ---------- START ----------

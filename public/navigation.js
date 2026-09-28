@@ -24,11 +24,10 @@ function goToScreen(index) {
     if (index === 0) loadMain();
     if (index === 1) { loadAreas(); loadHabits(); loadWeek(); loadTodos(); }
     if (index === 2) { loadPrograms(); loadMetrics(); }
-    if (index === 3) loadFood();
-    if (index === 4) { loadBudget(); loadWishlist(); loadPiggy(); }
-    if (index === 5) loadPlaces();
-    if (index === 6) loadFilm();
-    if (index === 7) loadTea();
+    if (index === 3) { loadBudget(); loadWishlist(); loadPiggy(); }
+    if (index === 4) loadPlaces();
+    if (index === 5) loadFilm();
+    if (index === 6) loadTea();
 }
 
 function switchSubTab(parent, tab, btn) {
@@ -39,10 +38,7 @@ function switchSubTab(parent, tab, btn) {
     const target = document.getElementById(`${parent}-${tab}`);
     if (target) target.classList.add('active');
 
-    // Автоподгрузка данных для конкретных табов
-    if (parent === 'food' && tab === 'shopping') loadShopping();
-    if (parent === 'food' && tab === 'diary') loadFoodDiary();
-    if (parent === 'food' && tab === 'recipes') renderFoodRecipes();
+    if (parent === 'cash' && tab === 'shopping') { loadDishes(); loadShopping(); loadCashProducts(); }
 }
 
 // ==========================================

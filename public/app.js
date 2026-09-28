@@ -66,16 +66,6 @@ const IMPORT_CONFIG = {
         hint: '<b># Область</b> — верхний уровень.<br><b>## Подобласть</b> — вложенная.<br><b>### Ещё глубже</b> — сколько угодно.<br>Обычная строка — цель в текущей области.',
         placeholder: '# ТЕЛО\n## Гигиена\n- волосы\n- кожа\n- запах\n## Речь\n- коммуникация\n- словарный запас\n## Форма\n- МС\n- спортзал\n- футбол\n\n# ГОЛОВА\n## Знания\n### IT\n- программирование\n- ИИ\n### Саморазвитие\n- английский\n- чтение\n## Финансы\n- работа\n- трейдинг',
     },
-    foodProducts: {
-        title: 'Импорт продуктов',
-        hint: 'Формат: <code>Название | единица | ккал | Б | Ж | У | цена | за сколько</code><br>Единица: г / мл / шт. Цена опциональна.',
-        placeholder: 'Курица | г | 165 | 31 | 3.6 | 0 | 350 | 1000\nРис | г | 130 | 2.7 | 0.3 | 28 | 120 | 900\nЯйцо | шт | 78 | 6 | 5 | 0.6 | 10 | 1',
-    },
-    foodRecipes: {
-        title: 'Импорт рецептов',
-        hint: 'Категории — строки с <b>#</b>.<br>Формат: <code>Название | порции | инструкция</code><br>Ингредиенты добавляются вручную.',
-        placeholder: '# Завтраки\nОвсянка | 1 | Залить молоком, варить 5 минут\nЯичница | 1 | Пожарить 3 минуты\n\n# Супы\nБорщ | 4 | Классический рецепт',
-    },
 };
 
 let importSection = null;
@@ -100,9 +90,7 @@ async function saveImport() {
     if (!text.trim()) return alert('Вставь список');
     try {
         let endpoint = importSection;
-        if (importSection === 'foodProducts') endpoint = 'food-products';
-        if (importSection === 'foodRecipes') endpoint = 'food-recipes';
-        const res = await api(`/api/import/${endpoint}`, 'POST', { text });
+        const res = await api(`/api/import/${importSection}`, 'POST', { text });
         closeImportModal();
         let msg = `✅ Добавлено: ${res.added}`;
         if (res.groupsAdded) msg += `, новых групп: ${res.groupsAdded}`;
@@ -114,12 +102,6 @@ async function saveImport() {
         else if (importSection === 'wishlist') await loadWishlist();
         else if (importSection === 'todos') await loadTodos();
         else if (importSection === 'discipline') await loadAreas();
-        else if (importSection === 'foodProducts') {
-            const { products } = await api('/api/food/products');
-            foodProducts = products;
-            if (typeof renderProductsList === 'function') renderProductsList();
-        }
-        else if (importSection === 'foodRecipes') await loadFood();
     } catch (e) { alert('Ошибка: ' + e.message); }
 }
 

@@ -2001,3 +2001,24 @@ textarea.modal-input {
 .tn-sub-clickable-rect {
     cursor: pointer;
 }
+
+/* ==========================================
+   CASH: ПРОДУКТЫ И БЛЮДА
+   ========================================== */
+.cash-pack-row {
+    display: flex;
+    gap: 8px;
+    align-items: stretch;
+}
+.cash-pack-row .modal-input {
+    flex: 1;
+    margin-bottom: 0;
+}
+.cash-pack-row .freq-tabs {
+    flex: 0 0 auto;
+}
+.cash-pack-row .freq-tab {
+    padding: 0 12px;
+    font-size: 12px;
+    font-weight: 700;
+}
