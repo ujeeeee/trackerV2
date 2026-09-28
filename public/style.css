@@ -2022,3 +2022,13 @@ textarea.modal-input {
     font-size: 12px;
     font-weight: 700;
 }
+
+/* ==========================================
+   CASH: модалки поверх других
+   ========================================== */
+#cashProductModal,
+#dishModal,
+#dishIngredientModal,
+#addToBasketModal {
+    z-index: 250;
+}
