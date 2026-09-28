@@ -5,7 +5,7 @@ let tgUser = { id: 0, name: 'Друг' };
 let initData = '';
 let currentUser = null;
 let tg = null;
-const TOTAL_MAIN_SCREENS = 8;
+const TOTAL_MAIN_SCREENS = 7;
 let currentScreenIndex = 0;
 
 // ===== Collapse state =====
