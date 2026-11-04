@@ -2,25 +2,27 @@
    ПЕРЕМЕННЫЕ
    ========================================== */
 :root {
-    --bg: #0a0809;
-    --bg-gradient:
-    radial-gradient(ellipse 80% 40% at 50% 0%, rgba(232, 80, 61, 0.10) 0%, transparent 70%);
-    --glass: rgba(28, 28, 32, 0.5);
-    --glass-strong: rgba(20, 20, 24, 0.65);
-    --glass-border: rgba(255, 255, 255, 0.346);
-    --glass-highlight: rgba(255, 255, 255, 0.06);
-    --card: rgba(38, 38, 44, 0.5);
-    --card-hover: rgba(48, 48, 56, 0.65);
-    --card-solid: #1c1c20;
-    --bg-secondary: rgba(28, 28, 32, 0.7);
-    --bg-secondary-solid: #17171a;
-    --text: #f5f5f7;
+    --bg: #121214; /* Глубокий, спокойный темный */
+    --bg-gradient: none; /* Убираем градиенты */
+    
+    /* Твой синий цвет с картинки */
+    --accent: #5575EB; 
+    --accent-rgb: 85, 117, 235;
+    --accent-soft: rgba(85, 117, 235, 0.15);
+    
+    /* Делаем стекло чуть более матовым и спокойным */
+    --glass: rgba(30, 30, 34, 0.6);
+    --glass-strong: rgba(24, 24, 28, 0.85);
+    --card: rgba(36, 36, 40, 0.6);
+    --card-hover: rgba(45, 45, 50, 0.8);
+    --bg-secondary: rgba(30, 30, 34, 0.8);
+    
+    --glass-border: rgba(255, 255, 255, 0.06);
+    --glass-highlight: rgba(255, 255, 255, 0.04);
+    --text: #F5F5F7;
     --text-secondary: #98989f;
     --text-tertiary: #5a5a5f;
-    --accent: #e8503d;
-    --accent-rgb: 232, 80, 61;
-    --accent-soft: rgba(232, 80, 61, 0.14);
-    --danger: #e8503d;
+    --danger: #ff453a;
     --success: #32d74b;
     --warning: #ff9f0a;
 }
