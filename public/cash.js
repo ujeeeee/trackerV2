@@ -276,6 +276,7 @@ function renderWishlist() {
                     <div class="item-check ${it.done ? 'done' : ''}" onclick="event.stopPropagation(); toggleWish(${it.id}, ${it.done})">✓</div>
                     <div class="item-info"><div class="item-title ${it.done ? 'done' : ''}">${escapeHtml(it.name)}</div></div>
                     ${it.price ? `<div class="item-rating" style="color:var(--text-secondary);">${fmt(it.price)}</div>` : ''}
+                    ${it.url ? `<button class="place-go" onclick="event.stopPropagation(); window.open('${escapeHtml(it.url)}', '_blank')">↗</button>` : ''}
                 </div>`;
             });
         }
