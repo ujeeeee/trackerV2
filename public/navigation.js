@@ -5,8 +5,13 @@ function goToScreen(index) {
     if (index < 0 || index >= TOTAL_MAIN_SCREENS) return;
     currentScreenIndex = index;
 
-    const screens = document.querySelectorAll('.screen');
-    screens.forEach((s, i) => s.classList.toggle('active', i === index));
+    const names = ['Main', 'Discipline', 'Cash', 'Gym', 'Places', 'Film', 'Tea'];
+    const screenName = names[index];
+
+    // Показываем нужный экран по его имени (data-screen-name)
+    document.querySelectorAll('.screen').forEach(s => {
+        s.classList.toggle('active', s.dataset.screenName === screenName);
+    });
 
     document.querySelectorAll('.nav-btn').forEach(b => {
         const idx = b.dataset.index;
@@ -23,8 +28,8 @@ function goToScreen(index) {
 
     if (index === 0) loadMain();
     if (index === 1) { loadAreas(); loadHabits(); loadWeek(); loadTodos(); }
-    if (index === 2) { loadBudget(); loadWishlist(); loadPiggy(); } // Теперь Cash
-    if (index === 3) { loadPrograms(); loadMetrics(); } // Теперь Gym
+    if (index === 2) { loadBudget(); loadWishlist(); loadPiggy(); } // Cash
+    if (index === 3) { loadPrograms(); loadMetrics(); } // Gym
     if (index === 4) loadPlaces();
     if (index === 5) loadFilm();
     if (index === 6) loadTea();
