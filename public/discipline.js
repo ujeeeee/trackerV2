@@ -215,7 +215,9 @@ function renderTodos() {
                     metaHtml += `</div>`;
                 }
 
-                return `<div class="todo-item ${t.done ? 'done' : ''}" data-id="${t.id}" onclick="toggleTodoTap(${t.id}, ${t.done})">
+                // Тут мы возвращаем чекбокс и разделяем клики
+                return `<div class="todo-item ${t.done ? 'done' : ''}" data-id="${t.id}" onclick="openTodoModal(${t.id})">
+                    <div class="item-check ${t.done ? 'done' : ''}" onclick="event.stopPropagation(); toggleTodo(${t.id}, ${t.done})">✓</div>
                     <div class="todo-body">
                         <div class="todo-name">${escapeHtml(t.name)}</div>
                         ${metaHtml}

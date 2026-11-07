@@ -2,22 +2,25 @@
    ПЕРЕМЕННЫЕ
    ========================================== */
 :root {
-    --bg: #1B1E24; /* Глубокий темный фон */
-    --bg-gradient: none; /* Убираем градиенты */
+    /* Глубокий, тёплый тёмный фон как в Claude */
+    --bg: #141413; 
+    --bg-gradient: none; 
     
-    --accent: #5575EB; /* Твой синий цвет с картинки */
-    --accent-rgb: 85, 117, 235;
-    --accent-soft: rgba(85, 117, 235, 0.15);
+    /* Терракотовый/оранжевый акцент */
+    --accent: #D97757; 
+    --accent-rgb: 217, 119, 87;
+    --accent-soft: rgba(217, 119, 87, 0.15);
     
-    --glass: rgba(30, 30, 34, 0.6);
-    --glass-strong: rgba(24, 24, 28, 0.85);
-    --card: rgba(36, 36, 40, 0.7);
-    --card-hover: rgba(45, 45, 50, 0.9);
-    --bg-secondary: rgba(30, 30, 34, 0.8);
+    /* Цвета карточек (чуть светлее фона) */
+    --glass: rgba(35, 35, 33, 0.6);
+    --glass-strong: rgba(20, 20, 19, 0.85);
+    --card: rgba(35, 35, 33, 0.7);
+    --card-hover: rgba(45, 45, 43, 0.9);
+    --bg-secondary: rgba(28, 28, 26, 0.8);
     
-    --glass-border: rgba(255, 255, 255, 0.06);
+    --glass-border: rgba(255, 255, 255, 0.08);
     --glass-highlight: rgba(255, 255, 255, 0.04);
-    --text: #F5F5F7; /* Белый текст */
+    --text: #F3F0ED; /* Тёплый белый */
     --text-secondary: #98989f;
     --text-tertiary: #5a5a5f;
     --danger: #ff453a;
