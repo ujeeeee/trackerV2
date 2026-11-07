@@ -36,7 +36,7 @@ function renderMainReminders(reminders) {
             <span>🔔 Напоминания</span>
             <div style="display:flex; align-items:center; gap:12px;">
                 ${reminders.length > 0 ? `<span class="widget-title-count">${reminders.length}</span>` : ''}
-                <button class="btn-icon-add" onclick="openTodoModal(null, true)">+</button>
+                <button class="btn-icon-add" onclick="openTodoModal(null, true)" style="font-size: 24px;">+</button>
             </div>
         </div>`;
         
@@ -63,7 +63,7 @@ function renderMainTodos(todos) {
             <span>Дела</span>
             <div style="display:flex; align-items:center; gap:12px;">
                 ${todos.length > 0 ? `<span class="widget-title-count">${todos.length}</span>` : ''}
-                <button class="btn-icon-add" onclick="openTodoModal(null, false)">+</button>
+                <button class="btn-icon-add" onclick="openTodoModal(null, false)" style="font-size: 24px;">+</button>
             </div>
         </div>`;
         
