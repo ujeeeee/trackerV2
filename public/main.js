@@ -34,7 +34,10 @@ function renderMainReminders(reminders) {
     let html = `<div class="widget">
         <div class="widget-title">
             <span>🔔 Напоминания</span>
-            <button class="btn-icon-add" onclick="openTodoModal(null, true)" style="font-size: 22px; margin-left: auto;">+</button>
+            <div style="display:flex; align-items:center; gap:12px;">
+                ${reminders.length > 0 ? `<span class="widget-title-count">${reminders.length}</span>` : ''}
+                <button class="btn-icon-add" onclick="openTodoModal(null, true)">+</button>
+            </div>
         </div>`;
         
     if (!reminders.length) {
@@ -57,8 +60,11 @@ function renderMainTodos(todos) {
     
     let html = `<div class="widget">
         <div class="widget-title">
-            <span>Дела на сегодня</span>
-            <button class="btn-icon-add" onclick="openTodoModal(null, false)" style="font-size: 22px; margin-left: auto;">+</button>
+            <span>Дела</span>
+            <div style="display:flex; align-items:center; gap:12px;">
+                ${todos.length > 0 ? `<span class="widget-title-count">${todos.length}</span>` : ''}
+                <button class="btn-icon-add" onclick="openTodoModal(null, false)">+</button>
+            </div>
         </div>`;
         
     if (!todos.length) {

@@ -91,45 +91,6 @@
             </div>
         </div>
 
-        <!-- ========== GYM ========== -->
-        <div class="screen" data-screen-name="Gym">
-            <div class="screen-inner">
-                <div class="screen-header">
-                    <h2>💪🏽 Gym</h2>
-                    <button class="settings-btn" onclick="openSettings()">⚙️</button>
-                </div>
-                <div class="tabs">
-                    <button class="tab active" onclick="switchSubTab('gym', 'programs', this)">Программы</button>
-                    <button class="tab" onclick="switchSubTab('gym', 'metrics', this)">Метрики</button>
-                </div>
-                <div class="screen-content">
-
-                    <div id="gym-programs" class="subtab active">
-                        <div class="goals-header">
-                            <span class="goals-header-title">Программы</span>
-                            <button class="btn-icon-add" onclick="openProgramModal()">+</button>
-                        </div>
-                        <div id="programsList"></div>
-                    </div>
-
-                    <div id="gym-metrics" class="subtab">
-                        <div class="goals-header metrics-header">
-                            <span class="goals-header-title">Биометрия</span>
-                            <button class="btn-icon-add" onclick="openMetricModal('bio')">+</button>
-                        </div>
-                        <div id="bioTable"></div>
-
-                        <div class="goals-header metrics-header section-top">
-                            <span class="goals-header-title">Сила</span>
-                            <button class="btn-icon-add" onclick="openMetricModal('strength')">+</button>
-                        </div>
-                        <div id="strengthTable"></div>
-                    </div>
-
-                </div>
-            </div>
-        </div>
-
         <!-- ========== CASH ========== -->
         <div class="screen" data-screen-name="Cash">
             <div class="screen-inner">
@@ -185,6 +146,45 @@
                             <button class="btn-icon-add" onclick="openWishlistAreaModal()">+</button>
                         </div>
                         <div id="wishlistGrid"></div>
+                    </div>
+
+                </div>
+            </div>
+        </div>
+
+        <!-- ========== GYM ========== -->
+        <div class="screen" data-screen-name="Gym">
+            <div class="screen-inner">
+                <div class="screen-header">
+                    <h2>💪🏽 Gym</h2>
+                    <button class="settings-btn" onclick="openSettings()">⚙️</button>
+                </div>
+                <div class="tabs">
+                    <button class="tab active" onclick="switchSubTab('gym', 'programs', this)">Программы</button>
+                    <button class="tab" onclick="switchSubTab('gym', 'metrics', this)">Метрики</button>
+                </div>
+                <div class="screen-content">
+
+                    <div id="gym-programs" class="subtab active">
+                        <div class="goals-header">
+                            <span class="goals-header-title">Программы</span>
+                            <button class="btn-icon-add" onclick="openProgramModal()">+</button>
+                        </div>
+                        <div id="programsList"></div>
+                    </div>
+
+                    <div id="gym-metrics" class="subtab">
+                        <div class="goals-header metrics-header">
+                            <span class="goals-header-title">Биометрия</span>
+                            <button class="btn-icon-add" onclick="openMetricModal('bio')">+</button>
+                        </div>
+                        <div id="bioTable"></div>
+
+                        <div class="goals-header metrics-header section-top">
+                            <span class="goals-header-title">Сила</span>
+                            <button class="btn-icon-add" onclick="openMetricModal('strength')">+</button>
+                        </div>
+                        <div id="strengthTable"></div>
                     </div>
 
                 </div>
