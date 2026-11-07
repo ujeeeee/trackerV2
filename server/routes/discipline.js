@@ -124,7 +124,7 @@ router.post('/todos', authMiddleware, async (req, res) => {
         time_end: time_end || null,
         is_reminder: is_reminder === true || is_reminder === 'true',
     }).select().single();
-    
+
     if (error) return res.status(500).json({ error: error.message });
     res.json({ todo: data });
 });

@@ -957,15 +957,6 @@ function findElWithDataset(el, key) {
     return null;
 }
 
-function findElWithDataset(el, key) {
-    const svg = document.getElementById('treeSvg');
-    while (el && el !== svg) {
-        if (el.dataset && el.dataset[key] !== undefined) return el;
-        el = el.parentNode;
-    }
-    return null;
-}
-
 function findGoalEl(el) {
     const svg = document.getElementById('treeSvg');
     while (el && el !== svg) {
