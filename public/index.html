@@ -23,6 +23,7 @@
                     <button class="settings-btn" onclick="openSettings()">⚙️</button>
                 </div>
                 <div class="screen-content">
+                    <div id="mainRemindersWidget"></div>
                     <div id="mainTodosWidget"></div>
                     <div id="mainHabitsWidget"></div>
                     <div id="mainMoneyWidget"></div>
@@ -140,7 +141,6 @@
                     <button class="tab active" onclick="switchSubTab('cash', 'budget', this)">Бюджет</button>
                     <button class="tab" onclick="switchSubTab('cash', 'wishlist', this)">Вишлист</button>
                     <button class="tab" onclick="switchSubTab('cash', 'piggy', this)">Копилка</button>
-                    <button class="tab" onclick="switchSubTab('cash', 'shopping', this)">Покупки</button>
                 </div>
                 <div class="screen-content">
 
@@ -185,24 +185,6 @@
                             <button class="btn-icon-add" onclick="openWishlistAreaModal()">+</button>
                         </div>
                         <div id="wishlistGrid"></div>
-                    </div>
-                    <div id="cash-shopping" class="subtab">
-                        <div class="goals-header">
-                            <span class="goals-header-title">Продукты</span>
-                            <button class="btn-icon-add" onclick="openShoppingProducts()">+</button>
-                        </div>
-                        <div class="goals-header" style="margin-top:16px;">
-                            <span class="goals-header-title">Блюда</span>
-                            <button class="btn-icon-add" onclick="openDishModal()">+</button>
-                        </div>
-                        <div id="dishesList"></div>
-
-                        <div class="goals-header" style="margin-top:24px;">
-                            <span class="goals-header-title">Список покупок</span>
-                            <button class="btn-icon-add" onclick="clearShoppingList()">🗑</button>
-                        </div>
-                        <div id="shoppingBasket"></div>
-                        <div id="shoppingItems"></div>
                     </div>
 
                 </div>
@@ -405,15 +387,13 @@
 <!-- ========================================== -->
 <!-- НИЖНЕЕ МЕНЮ -->
 <!-- ========================================== -->
-<nav class="bottom-nav" id="bottomNav">
-    <button class="nav-btn" data-index="0" onclick="goToScreen(0)"><span class="nav-icon">📱</span><span class="nav-label">Main</span></button>
-    <button class="nav-btn" data-index="1" onclick="goToScreen(1)"><span class="nav-icon">🎯</span><span class="nav-label">Discipline</span></button>
-    <button class="nav-btn" data-index="2" onclick="goToScreen(2)"><span class="nav-icon">💪🏽</span><span class="nav-label">Gym</span></button>
-    <button class="nav-btn" data-index="3" onclick="goToScreen(3)"><span class="nav-icon">💸</span><span class="nav-label">Cash</span></button>
-    <button class="nav-btn" data-index="4" onclick="goToScreen(4)"><span class="nav-icon">📍</span><span class="nav-label">Places</span></button>
-    <button class="nav-btn" data-index="5" onclick="goToScreen(5)"><span class="nav-icon">🎬</span><span class="nav-label">Film</span></button>
-    <button class="nav-btn" data-index="6" onclick="goToScreen(6)"><span class="nav-icon">☕️</span><span class="nav-label">Tea</span></button>
-</nav>
+<button class="nav-btn" data-index="0" onclick="goToScreen(0)"><span class="nav-icon">📱</span><span class="nav-label">Main</span></button>
+<button class="nav-btn" data-index="1" onclick="goToScreen(1)"><span class="nav-icon">🎯</span><span class="nav-label">Discipline</span></button>
+<button class="nav-btn" data-index="2" onclick="goToScreen(2)"><span class="nav-icon">💸</span><span class="nav-label">Cash</span></button>
+<button class="nav-btn" data-index="3" onclick="goToScreen(3)"><span class="nav-icon">💪🏽</span><span class="nav-label">Gym</span></button>
+<button class="nav-btn" data-index="4" onclick="goToScreen(4)"><span class="nav-icon">📍</span><span class="nav-label">Places</span></button>
+<button class="nav-btn" data-index="5" onclick="goToScreen(5)"><span class="nav-icon">🎬</span><span class="nav-label">Film</span></button>
+<button class="nav-btn" data-index="6" onclick="goToScreen(6)"><span class="nav-icon">☕️</span><span class="nav-label">Tea</span></button>
 
 <!-- ========================================== -->
 <!-- МОДАЛКИ -->
@@ -479,6 +459,11 @@
         <h3 class="modal-title" id="todoModalTitle">Новое дело</h3>
         <div class="field-label">Название</div>
         <input type="text" class="modal-input" id="todoName" placeholder="Что нужно сделать?" />
+        <div class="field-label">Тип</div>
+        <div class="freq-tabs" id="todoTypeTabs">
+            <button class="freq-tab active" data-rem="false" onclick="pickTodoType(false, this)">Дело</button>
+            <button class="freq-tab" data-rem="true" onclick="pickTodoType(true, this)">Напоминание</button>
+        </div>
         <div class="field-label">Дата (необязательно)</div>
         <input type="date" class="modal-input" id="todoDate" />
         <div class="field-label">Время (необязательно)</div>

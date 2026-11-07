@@ -23,8 +23,8 @@ function goToScreen(index) {
 
     if (index === 0) loadMain();
     if (index === 1) { loadAreas(); loadHabits(); loadWeek(); loadTodos(); }
-    if (index === 2) { loadPrograms(); loadMetrics(); }
-    if (index === 3) { loadBudget(); loadWishlist(); loadPiggy(); }
+    if (index === 2) { loadBudget(); loadWishlist(); loadPiggy(); } // Теперь Cash
+    if (index === 3) { loadPrograms(); loadMetrics(); } // Теперь Gym
     if (index === 4) loadPlaces();
     if (index === 5) loadFilm();
     if (index === 6) loadTea();
@@ -37,8 +37,6 @@ function switchSubTab(parent, tab, btn) {
     ps.querySelectorAll('.subtab').forEach(st => st.classList.remove('active'));
     const target = document.getElementById(`${parent}-${tab}`);
     if (target) target.classList.add('active');
-
-    if (parent === 'cash' && tab === 'shopping') { loadDishes(); loadShopping(); loadCashProducts(); }
 }
 
 // ==========================================

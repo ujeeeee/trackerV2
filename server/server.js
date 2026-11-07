@@ -80,9 +80,7 @@ app.post('/api/reorder', authMiddleware, async (req, res) => {
 const BACKUP_SECTIONS = {
     discipline: ['disc_areas','disc_goals','disc_habits','disc_habit_logs','disc_todos'],
     cash: ['cash_budget','cash_custom_stats','cash_subs','cash_weekly','cash_expenses',
-        'cash_wishlist_areas','cash_wishlist','cash_piggy','cash_piggy_settings',
-        'cash_products','cash_dishes','cash_dish_ingredients','cash_shopping_basket',
-        'cash_shopping_checked'],
+       'cash_wishlist_areas','cash_wishlist','cash_piggy','cash_piggy_settings'],
     gym: ['gym_metrics','gym_metric_logs','gym_programs','gym_program_days','gym_exercises','gym_exercise_sets'],
     film: ['film_genres','film_movies'],
     tea: ['tea_groups','tea_items','tea_shops'],

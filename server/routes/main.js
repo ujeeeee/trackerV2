@@ -18,12 +18,23 @@ router.get('/main', authMiddleware, async (req, res) => {
     tomorrowDate.setDate(tomorrowDate.getDate() + 1);
     const tomorrowStr = localDate(tomorrowDate);
 
-    // --- Дела ---
+    // --- Напоминания (все невыполненные) ---
+    const { data: reminders } = await supabase.from('disc_todos').select('*')
+        .eq('tg_id', req.tg_id).eq('done', false).eq('is_reminder', true);
+
+    const remindersList = (reminders || []).map(t => ({
+        id: t.id,
+        name: t.name,
+        date: t.date,
+    }));
+
+    // --- Дела (только не напоминания) ---
     const { data: todos } = await supabase.from('disc_todos').select('*')
-        .eq('tg_id', req.tg_id).eq('done', false)
+        .eq('tg_id', req.tg_id).eq('done', false).eq('is_reminder', false)
         .or(`date.is.null,date.eq.${todayStr},date.eq.${tomorrowStr}`);
 
     const todosList = (todos || []).map(t => ({
+        id: t.id,
         name: t.name,
         date: t.date,
         isToday: t.date === todayStr,
@@ -90,6 +101,7 @@ router.get('/main', authMiddleware, async (req, res) => {
     const debt = piggyBalance - fact;
 
     res.json({
+        reminders: remindersList, // <-- ДОБАВИЛИ
         todos: todosList,
         habits: habitsList,
         money: { balance: piggyBalance, debt },

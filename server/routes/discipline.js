@@ -113,7 +113,7 @@ router.get('/todos', authMiddleware, async (req, res) => {
 });
 
 router.post('/todos', authMiddleware, async (req, res) => {
-    const { name, date, time_start, time_end } = req.body;
+        const { name, date, time_start, time_end, is_reminder } = req.body;
     if (!name?.trim()) return res.status(400).json({ error: 'Name required' });
     const { data, error } = await supabase.from('disc_todos').insert({
         tg_id: req.tg_id,
@@ -121,10 +121,8 @@ router.post('/todos', authMiddleware, async (req, res) => {
         date: date || null,
         time_start: time_start || null,
         time_end: time_end || null,
+        is_reminder: is_reminder === true || is_reminder === 'true', // <-- ДОБАВИЛИ
     }).select().single();
-    if (error) return res.status(500).json({ error: error.message });
-    res.json({ todo: data });
-});
 
 router.patch('/todos/:id', authMiddleware, async (req, res) => {
     const updates = {};
@@ -133,6 +131,7 @@ router.patch('/todos/:id', authMiddleware, async (req, res) => {
     if (req.body.date !== undefined) updates.date = req.body.date || null;
     if (req.body.time_start !== undefined) updates.time_start = req.body.time_start || null;
     if (req.body.time_end !== undefined) updates.time_end = req.body.time_end || null;
+    if (req.body.is_reminder !== undefined) updates.is_reminder = req.body.is_reminder === true || req.body.is_reminder === 'true';
     const { data, error } = await supabase.from('disc_todos').update(updates)
         .eq('id', req.params.id).eq('tg_id', req.tg_id).select().single();
     if (error) return res.status(500).json({ error: error.message });

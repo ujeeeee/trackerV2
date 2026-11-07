@@ -11,8 +11,9 @@ async function loadMain() {
 
 function renderMain(data) {
     renderMainGreeting();
-    renderMainTodos(data.todos);
-    renderMainHabits(data.habits);
+    renderMainReminders(data.reminders || []);
+    renderMainTodos(data.todos || []);
+    renderMainHabits(data.habits || []);
     renderMainMoney(data.money);
     renderNYWidget();
 }
@@ -27,39 +28,64 @@ function renderMainGreeting() {
     document.getElementById('mainDate').textContent = `${days[d.getDay()]}, ${d.getDate()} ${months[d.getMonth()]}`;
 }
 
-function renderMainTodos(todos) {
-    const c = document.getElementById('mainTodosWidget');
-
-    const sorted = [...todos].sort((a, b) => {
-        if (a.done !== b.done) return a.done ? 1 : -1;
-        const aHas = !!a.date;
-        const bHas = !!b.date;
-        if (aHas && !bHas) return -1;
-        if (!aHas && bHas) return 1;
-        if (aHas && bHas) return a.date.localeCompare(b.date);
-        return 0;
-    });
-
-    let html = `<div class="widget"><div class="widget-title"><span>Дела</span>${sorted.length > 0 ? `<span class="widget-title-count">${sorted.length}</span>` : ''}</div>`;
-    if (!sorted.length) {
-        html += `<div class="widget-empty">Пусто</div>`;
+function renderMainReminders(reminders) {
+    const c = document.getElementById('mainRemindersWidget');
+    
+    let html = `<div class="widget">
+        <div class="widget-title">
+            <span>🔔 Напоминания</span>
+            <button class="btn-icon-add" onclick="openTodoModal(null, true)" style="font-size: 22px; margin-left: auto;">+</button>
+        </div>`;
+        
+    if (!reminders.length) {
+        html += `<div class="widget-empty">Нет напоминаний</div>`;
     } else {
-        sorted.forEach(t => {
-            const time = t.time_start ? `${t.time_start}${t.time_end ? '—' + t.time_end : ''}` : '';
-            let label = '';
-            let cls = '';
-            if (t.isToday) { label = 'Сегодня'; cls = ''; }
-            else if (t.isTomorrow) { label = 'Завтра'; cls = 'tomorrow'; }
-
-            html += `<div class="main-todo-item">
+        reminders.forEach(t => {
+            const dateStr = t.date ? formatDate(t.date) : '';
+            html += `<div class="main-todo-item" onclick="completeFromMain(${t.id})">
                 <span class="main-todo-name">${escapeHtml(t.name)}</span>
-                ${time ? `<span class="main-todo-time">${time}</span>` : ''}
-                ${label ? `<span class="main-todo-date ${cls}">${label}</span>` : ''}
+                ${dateStr ? `<span class="main-todo-date" style="color: var(--accent); font-weight: 700;">${dateStr}</span>` : ''}
             </div>`;
         });
     }
     html += `</div>`;
     c.innerHTML = html;
+}
+
+function renderMainTodos(todos) {
+    const c = document.getElementById('mainTodosWidget');
+    
+    let html = `<div class="widget">
+        <div class="widget-title">
+            <span>Дела на сегодня</span>
+            <button class="btn-icon-add" onclick="openTodoModal(null, false)" style="font-size: 22px; margin-left: auto;">+</button>
+        </div>`;
+        
+    if (!todos.length) {
+        html += `<div class="widget-empty">Пусто</div>`;
+    } else {
+        todos.forEach(t => {
+            const time = t.time_start ? `${t.time_start}${t.time_end ? '—' + t.time_end : ''}` : '';
+            let label = t.isToday ? 'Сегодня' : (t.isTomorrow ? 'Завтра' : '');
+            if (!t.date) label = '';
+
+            html += `<div class="main-todo-item" onclick="completeFromMain(${t.id})">
+                <span class="main-todo-name">${escapeHtml(t.name)}</span>
+                ${time ? `<span class="main-todo-time">${time}</span>` : ''}
+                ${label ? `<span class="main-todo-date ${t.isTomorrow ? 'tomorrow' : ''}">${label}</span>` : ''}
+            </div>`;
+        });
+    }
+    html += `</div>`;
+    c.innerHTML = html;
+}
+
+async function completeFromMain(id) {
+    if (!confirm('Выполнено?')) return;
+    try {
+        await api(`/api/disc/todos/${id}`, 'PATCH', { done: true });
+        await loadMain();
+    } catch (e) { alert('Ошибка: ' + e.message); }
 }
 
 function renderMainHabits(habits) {
@@ -69,11 +95,19 @@ function renderMainHabits(habits) {
         html += `<div class="widget-empty">Все привычки выполнены ✓</div>`;
     } else {
         habits.forEach(h => {
-            html += `<div class="main-habit-item">${escapeHtml(h.name)}</div>`;
+            html += `<div class="main-habit-item" onclick="completeHabitFromMain(${h.id})">${escapeHtml(h.name)}</div>`;
         });
     }
     html += `</div>`;
     c.innerHTML = html;
+}
+
+async function completeHabitFromMain(id) {
+    if (!confirm('Привычка выполнена?')) return;
+    try {
+        await api(`/api/disc/habits/${id}/toggle`, 'POST', { date: localDate(new Date()) });
+        await loadMain();
+    } catch (e) { alert('Ошибка: ' + e.message); }
 }
 
 function renderMainMoney(money) {

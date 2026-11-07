@@ -170,7 +170,13 @@ async function deleteHabit() {
 // ===== DISCIPLINE: ДЕЛА =====
 // ==========================================
 let todos = [];
-let todoCtx = { id: null };
+let todoCtx = { id: null, isReminder: false };
+
+function pickTodoType(isRem, btn) {
+    todoCtx.isReminder = isRem;
+    document.querySelectorAll('#todoTypeTabs [data-rem]').forEach(b => b.classList.remove('active'));
+    btn.classList.add('active');
+}
 
 async function loadTodos() {
     try {
@@ -187,59 +193,56 @@ function renderTodos() {
         return;
     }
 
-    const sorted = [...todos].sort((a, b) => {
-        if (a.done !== b.done) return a.done ? 1 : -1;
-        const aHas = !!a.date;
-        const bHas = !!b.date;
-        if (aHas && bHas) return a.date.localeCompare(b.date);
-        if (aHas) return -1;
-        if (bHas) return 1;
-        return 0;
-    });
+    const reminders = todos.filter(t => t.is_reminder && !t.done);
+    const tasks = todos.filter(t => !t.is_reminder && !t.done);
+    const doneTasks = todos.filter(t => t.done);
 
-    c.innerHTML = sorted.map(t => {
-        let metaHtml = '';
-        if (t.date) {
-            const label = getDayLabel(t.date);
-            const dateStr = formatDate(t.date);
-            let cls = '';
-            if (label === 'вчера') cls = 'overdue';
-            else if (label === 'сегодня') cls = 'today';
-            else if (label === 'завтра') cls = 'tomorrow';
-            const display = label ? `${dateStr} (${label})` : dateStr;
-            metaHtml = `<div class="todo-meta"><span class="${cls}">${display}</span>`;
-            if (t.time_start || t.time_end) {
-                metaHtml += ` · ${t.time_start || '?'}—${t.time_end || '?'}`;
-            }
-            metaHtml += `</div>`;
-        } else if (t.time_start || t.time_end) {
-            metaHtml = `<div class="todo-meta">${t.time_start || '?'}—${t.time_end || '?'}</div>`;
-        }
+    function renderGroup(title, list) {
+        if (!list.length) return '';
+        return `<div class="goals-header-title" style="margin:12px 4px 6px;">${title}</div>` +
+            list.map(t => {
+                let metaHtml = '';
+                if (t.date) {
+                    const label = getDayLabel(t.date);
+                    const dateStr = formatDate(t.date);
+                    let cls = '';
+                    if (label === 'вчера') cls = 'overdue';
+                    else if (label === 'сегодня') cls = 'today';
+                    else if (label === 'завтра') cls = 'tomorrow';
+                    const display = label ? `${dateStr} (${label})` : dateStr;
+                    metaHtml = `<div class="todo-meta"><span class="${cls}">${display}</span>`;
+                    if (t.time_start || t.time_end) metaHtml += ` · ${t.time_start || '?'}—${t.time_end || '?'}`;
+                    metaHtml += `</div>`;
+                }
 
-        return `<div class="todo-item ${t.done ? 'done' : ''}" data-id="${t.id}" onclick="openTodoModal(${t.id})">
-            <div class="item-check ${t.done ? 'done' : ''}" onclick="event.stopPropagation(); toggleTodo(${t.id}, ${t.done})">✓</div>
-            <div class="todo-body">
-                <div class="todo-name">${escapeHtml(t.name)}</div>
-                ${metaHtml}
-            </div>
-        </div>`;
-    }).join('');
+                return `<div class="todo-item ${t.done ? 'done' : ''}" data-id="${t.id}" onclick="toggleTodoTap(${t.id}, ${t.done})">
+                    <div class="todo-body">
+                        <div class="todo-name">${escapeHtml(t.name)}</div>
+                        ${metaHtml}
+                    </div>
+                </div>`;
+            }).join('');
+    }
+
+    c.innerHTML = 
+        renderGroup('🔔 Напоминания', reminders) +
+        renderGroup('📋 Дела', tasks) +
+        renderGroup('✓ Выполнено', doneTasks);
 
     if (!c._sortable && window.Sortable) {
         c._sortable = new Sortable(c, {
             animation: 150, delay: 250, delayOnTouchOnly: true,
             draggable: '[data-id]',
             onEnd: async () => {
-                const ids = [...c.querySelectorAll('[data-id]')]
-                    .map(el => parseInt(el.dataset.id)).filter(Boolean);
+                const ids = [...c.querySelectorAll('[data-id]')].map(el => parseInt(el.dataset.id)).filter(Boolean);
                 if (ids.length) await api('/api/reorder', 'POST', { table: 'disc_todos', ids });
             }
         });
     }
 }
 
-function openTodoModal(id = null) {
-    todoCtx = { id };
+function openTodoModal(id = null, defaultIsReminder = false) {
+    todoCtx = { id, isReminder: defaultIsReminder };
     const titleEl = document.getElementById('todoModalTitle');
     const nameEl = document.getElementById('todoName');
     const dateEl = document.getElementById('todoDate');
@@ -250,21 +253,26 @@ function openTodoModal(id = null) {
     if (id) {
         const t = todos.find(x => x.id === id);
         if (t) {
-            titleEl.textContent = 'Редактировать дело';
+            titleEl.textContent = 'Редактировать';
             nameEl.value = t.name;
             dateEl.value = t.date || '';
             timeStartEl.value = t.time_start || '';
             timeEndEl.value = t.time_end || '';
+            todoCtx.isReminder = t.is_reminder || false;
         }
         delBtn.style.display = 'block';
     } else {
-        titleEl.textContent = 'Новое дело';
+        titleEl.textContent = defaultIsReminder ? 'Новое напоминание' : 'Новое дело';
         nameEl.value = '';
         dateEl.value = '';
         timeStartEl.value = '';
         timeEndEl.value = '';
         delBtn.style.display = 'none';
     }
+
+    document.querySelectorAll('#todoTypeTabs [data-rem]').forEach(b => 
+        b.classList.toggle('active', b.dataset.rem === String(todoCtx.isReminder))
+    );
 
     openModal('todoModal');
     setTimeout(() => nameEl.focus(), 200);
@@ -280,6 +288,7 @@ async function saveTodo() {
         date: document.getElementById('todoDate').value || null,
         time_start: document.getElementById('todoTimeStart').value || null,
         time_end: document.getElementById('todoTimeEnd').value || null,
+        is_reminder: todoCtx.isReminder, // <-- ДОБАВИЛИ
     };
     try {
         if (todoCtx.id) await api(`/api/disc/todos/${todoCtx.id}`, 'PATCH', payload);
@@ -1229,6 +1238,17 @@ async function deleteGoalFromModal() {
     closeGoalModal();
     selectedNodeId = null;
     await loadAreas();
+}
+
+async function toggleTodoTap(id, isDone) {
+    if (isDone) {
+        await api(`/api/disc/todos/${id}`, 'PATCH', { done: false });
+        await loadTodos();
+        return;
+    }
+    if (!confirm('Отметить как выполненное?')) return;
+    await api(`/api/disc/todos/${id}`, 'PATCH', { done: true });
+    await loadTodos();
 }
 
 // ==========================================
