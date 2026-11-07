@@ -387,13 +387,15 @@
 <!-- ========================================== -->
 <!-- НИЖНЕЕ МЕНЮ -->
 <!-- ========================================== -->
-<button class="nav-btn" data-index="0" onclick="goToScreen(0)"><span class="nav-icon">📱</span><span class="nav-label">Main</span></button>
-<button class="nav-btn" data-index="1" onclick="goToScreen(1)"><span class="nav-icon">🎯</span><span class="nav-label">Discipline</span></button>
-<button class="nav-btn" data-index="2" onclick="goToScreen(2)"><span class="nav-icon">💸</span><span class="nav-label">Cash</span></button>
-<button class="nav-btn" data-index="3" onclick="goToScreen(3)"><span class="nav-icon">💪🏽</span><span class="nav-label">Gym</span></button>
-<button class="nav-btn" data-index="4" onclick="goToScreen(4)"><span class="nav-icon">📍</span><span class="nav-label">Places</span></button>
-<button class="nav-btn" data-index="5" onclick="goToScreen(5)"><span class="nav-icon">🎬</span><span class="nav-label">Film</span></button>
-<button class="nav-btn" data-index="6" onclick="goToScreen(6)"><span class="nav-icon">☕️</span><span class="nav-label">Tea</span></button>
+<nav class="bottom-nav" id="bottomNav">
+    <button class="nav-btn" data-index="0" onclick="goToScreen(0)"><span class="nav-icon">📱</span><span class="nav-label">Main</span></button>
+    <button class="nav-btn" data-index="1" onclick="goToScreen(1)"><span class="nav-icon">🎯</span><span class="nav-label">Discipline</span></button>
+    <button class="nav-btn" data-index="2" onclick="goToScreen(2)"><span class="nav-icon">💸</span><span class="nav-label">Cash</span></button>
+    <button class="nav-btn" data-index="3" onclick="goToScreen(3)"><span class="nav-icon">💪🏽</span><span class="nav-label">Gym</span></button>
+    <button class="nav-btn" data-index="4" onclick="goToScreen(4)"><span class="nav-icon">📍</span><span class="nav-label">Places</span></button>
+    <button class="nav-btn" data-index="5" onclick="goToScreen(5)"><span class="nav-icon">🎬</span><span class="nav-label">Film</span></button>
+    <button class="nav-btn" data-index="6" onclick="goToScreen(6)"><span class="nav-icon">☕️</span><span class="nav-label">Tea</span></button>
+</nav>
 
 <!-- ========================================== -->
 <!-- МОДАЛКИ -->
@@ -977,100 +979,6 @@
         <div class="modal-handle"></div>
         <h3 class="modal-title">Привычки</h3>
         <div id="habitReportBody"></div>
-    </div>
-</div>
-
-<!-- ПРОДУКТ (упаковка) -->
-<div class="modal-overlay" id="cashProductModal">
-    <div class="modal-sheet">
-        <div class="modal-handle"></div>
-        <h3 class="modal-title" id="cashProductTitle">Новый продукт</h3>
-        <div class="field-label">Название</div>
-        <input type="text" class="modal-input" id="cashProductName" placeholder="Название продукта" />
-        <div class="field-label">В упаковке</div>
-        <div class="cash-pack-row">
-            <input type="number" class="modal-input" id="cashProductAmount" placeholder="1000" step="0.1" />
-            <div class="freq-tabs" id="cashProductUnit">
-                <button class="freq-tab active" data-v="г" onclick="pickCashUnit('г', this)">г</button>
-                <button class="freq-tab" data-v="мл" onclick="pickCashUnit('мл', this)">мл</button>
-                <button class="freq-tab" data-v="шт" onclick="pickCashUnit('шт', this)">шт</button>
-            </div>
-        </div>
-        <div class="field-label" style="margin-top:12px;">Цена упаковки (₽)</div>
-        <input type="number" class="modal-input" id="cashProductPrice" placeholder="500" step="0.01" />
-        <div class="modal-actions">
-            <button class="modal-btn danger" id="cashProductDeleteBtn" style="display:none;" onclick="deleteCashProductFromModal()">Удалить</button>
-            <button class="modal-btn primary" onclick="saveCashProduct()">Сохранить</button>
-        </div>
-    </div>
-</div>
-
-<!-- СПИСОК ПРОДУКТОВ -->
-<div class="modal-overlay" id="cashProductsListModal">
-    <div class="modal-sheet">
-        <div class="modal-handle"></div>
-        <h3 class="modal-title">Продукты</h3>
-        <button class="modal-btn primary" style="margin-bottom:12px;" onclick="openCashProductModal()">+ Новый продукт</button>
-        <div id="cashProductsList"></div>
-    </div>
-</div>
-
-<!-- БЛЮДО -->
-<div class="modal-overlay" id="dishModal">
-    <div class="modal-sheet">
-        <div class="modal-handle"></div>
-        <h3 class="modal-title" id="dishTitle">Новое блюдо</h3>
-        <div class="field-label">Название</div>
-        <input type="text" class="modal-input" id="dishName" placeholder="Название блюда" />
-        <div class="field-label">Ингредиенты (на 1 порцию)</div>
-        <div id="dishIngredients"></div>
-        <button class="modal-btn secondary" style="width:100%;margin-bottom:12px;" onclick="openDishIngredientModal()">+ Ингредиент</button>
-        <div class="field-label">Рецепт</div>
-        <textarea class="modal-input" id="dishRecipe" rows="4" placeholder="Как готовить..."></textarea>
-        <div class="modal-actions">
-            <button class="modal-btn danger" id="dishDeleteBtn" style="display:none;" onclick="deleteDishFromModal()">Удалить</button>
-            <button class="modal-btn primary" onclick="saveDish()">Сохранить</button>
-        </div>
-    </div>
-</div>
-
-<!-- ИНГРЕДИЕНТ БЛЮДА -->
-<div class="modal-overlay" id="dishIngredientModal">
-    <div class="modal-sheet">
-        <div class="modal-handle"></div>
-        <h3 class="modal-title">Ингредиент</h3>
-        <div class="field-label">Продукт</div>
-        <input type="text" class="modal-input" id="dishIngSearch" placeholder="Поиск..." oninput="renderDishIngProducts()" />
-        <div id="dishIngProducts" class="food-picker-list"></div>
-        <div class="field-label" style="margin-top:12px;">Количество</div>
-        <input type="number" class="modal-input" id="dishIngAmount" placeholder="300" step="0.1" />
-        <div class="modal-actions">
-            <button class="modal-btn primary" onclick="saveDishIngredient()">Добавить</button>
-        </div>
-    </div>
-</div>
-
-<!-- ДОБАВИТЬ БЛЮДО В КОРЗИНУ -->
-<div class="modal-overlay" id="addToBasketModal">
-    <div class="modal-sheet">
-        <div class="modal-handle"></div>
-        <h3 class="modal-title" id="addToBasketTitle">Добавить</h3>
-        <div class="field-label">Сколько порций</div>
-        <input type="number" class="modal-input" id="addToBasketPortions" placeholder="1" step="1" min="1" value="1" />
-        <div class="modal-actions">
-            <button class="modal-btn primary" onclick="saveToBasket()">Добавить</button>
-        </div>
-    </div>
-</div>
-
-<!-- МОДАЛКА ПОИСКА -->
-<div class="modal-overlay" id="searchModal">
-    <div class="modal-sheet">
-        <div class="modal-handle"></div>
-        <button class="modal-close" onclick="closeSearch()">✕</button>
-        <h3 class="modal-title" id="searchTitle">Поиск</h3>
-        <input type="text" class="modal-input" id="searchInput" placeholder="Введите название..." oninput="onSearchInput()" />
-        <div id="searchResults" class="search-results"></div>
     </div>
 </div>
 
