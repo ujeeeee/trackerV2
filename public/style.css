@@ -1712,7 +1712,7 @@ textarea.modal-input {
    ========================================== */
 .tree-wrap {
     position: fixed;
-    top: calc(env(safe-area-inset-top, 0px) + 135px);
+    top: calc(env(safe-area-inset-top, 0px) + 95px);
     bottom: calc(env(safe-area-inset-bottom, 0px) + 185px);
     left: 0;
     right: 0;

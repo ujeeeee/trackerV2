@@ -21,10 +21,6 @@
                         <div class="home-date" id="mainDate"></div>
                     </div>
                     <div style="display:flex; gap:8px; align-items:center;">
-                        <div class="view-switch">
-                            <button class="view-btn active" id="btnViewList" onclick="switchMainView('list')">Список</button>
-                            <button class="view-btn" id="btnViewCal" onclick="switchMainView('calendar')">Календарь</button>
-                        </div>
                         <button class="settings-btn" onclick="openSettings()">⚙️</button>
                     </div>
                 </div>
@@ -450,30 +446,64 @@
     </div>
 </div>
 
-<!-- ДЕЛО -->
-<div class="modal-overlay" id="todoModal">
+<!-- УНИВЕРСАЛЬНАЯ МОДАЛКА ДОБАВЛЕНИЯ -->
+<div class="modal-overlay" id="addItemModal">
     <div class="modal-sheet">
         <div class="modal-handle"></div>
-        <h3 class="modal-title" id="todoModalTitle">Новое дело</h3>
-        <div class="field-label">Название</div>
-        <input type="text" class="modal-input" id="todoName" placeholder="Что нужно сделать?" />
-        <div class="field-label">Тип</div>
-        <div class="freq-tabs" id="todoTypeTabs">
-            <button class="freq-tab active" data-rem="false" onclick="pickTodoType(false, this)">Дело</button>
-            <button class="freq-tab" data-rem="true" onclick="pickTodoType(true, this)">Напоминание</button>
+        <h3 class="modal-title" id="addItemTitle">Добавить</h3>
+        <div class="freq-tabs" id="addTypeTabs">
+            <button class="freq-tab active" data-type="todo" onclick="switchAddType('todo', this)">Дело</button>
+            <button class="freq-tab" data-type="reminder" onclick="switchAddType('reminder', this)">Напоминание</button>
+            <button class="freq-tab" data-type="habit" onclick="switchAddType('habit', this)">Привычка</button>
         </div>
-        <div class="field-label">Дата (необязательно)</div>
-        <input type="date" class="modal-input" id="todoDate" />
-        <div class="field-label">Время (необязательно)</div>
-        <div class="todo-time-row">
-            <input type="time" class="modal-input" id="todoTimeStart" />
-            <span class="todo-time-sep">—</span>
-            <input type="time" class="modal-input" id="todoTimeEnd" />
+        
+        <!-- Поля для Дела/Напоминания -->
+        <div id="fields-todo" style="margin-top:16px;">
+            <div class="field-label">Название</div>
+            <input type="text" class="modal-input" id="todoName" placeholder="Что нужно сделать?" />
+            <div class="field-label">Дата (необязательно)</div>
+            <input type="date" class="modal-input" id="todoDate" />
+            <div class="field-label">Время (необязательно)</div>
+            <div class="todo-time-row">
+                <input type="time" class="modal-input" id="todoTimeStart" />
+                <span class="todo-time-sep">—</span>
+                <input type="time" class="modal-input" id="todoTimeEnd" />
+            </div>
         </div>
+
+        <!-- Поля для Привычки -->
+        <div id="fields-habit" style="display:none; margin-top:16px;">
+            <div class="field-label">Название</div>
+            <input type="text" class="modal-input" id="habitName" placeholder="Например: Зал" />
+            <div class="field-label">Периодичность</div>
+            <div class="freq-tabs">
+                <button class="freq-tab active" data-freq="daily" onclick="pickFreq('daily', this)">Каждый день</button>
+                <button class="freq-tab" data-freq="days" onclick="pickFreq('days', this)">Дни недели</button>
+                <button class="freq-tab" data-freq="interval" onclick="pickFreq('interval', this)">Интервал</button>
+            </div>
+            <div id="freqDays" style="display:none;margin-top:12px;">
+                <div class="days-picker">
+                    <button class="day-opt" data-dow="1" onclick="toggleDow(1)">Пн</button>
+                    <button class="day-opt" data-dow="2" onclick="toggleDow(2)">Вт</button>
+                    <button class="day-opt" data-dow="3" onclick="toggleDow(3)">Ср</button>
+                    <button class="day-opt" data-dow="4" onclick="toggleDow(4)">Чт</button>
+                    <button class="day-opt" data-dow="5" onclick="toggleDow(5)">Пт</button>
+                    <button class="day-opt" data-dow="6" onclick="toggleDow(6)">Сб</button>
+                    <button class="day-opt" data-dow="7" onclick="toggleDow(7)">Вс</button>
+                </div>
+            </div>
+            <div id="freqInterval" style="display:none;margin-top:12px;">
+                <div class="interval-row">
+                    <span>Каждые</span>
+                    <input type="number" class="interval-input" id="intervalInput" value="2" min="2" max="60" />
+                    <span>дней</span>
+                </div>
+            </div>
+        </div>
+
         <div class="modal-actions" style="margin-top:20px;">
-            <button class="modal-btn danger" id="todoDeleteBtn" style="display:none;" onclick="deleteTodo()">Удалить</button>
-            <button class="modal-btn secondary" onclick="closeTodoModal()">Отмена</button>
-            <button class="modal-btn primary" onclick="saveTodo()">Сохранить</button>
+            <button class="modal-btn danger" id="addItemDeleteBtn" style="display:none;" onclick="deleteAddItem()">Удалить</button>
+            <button class="modal-btn primary" onclick="saveAddItem()">Сохранить</button>
         </div>
     </div>
 </div>
