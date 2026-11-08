@@ -2047,3 +2047,144 @@ input[type="time"] {
     appearance: none;
     display: block;
 }
+
+/* ==========================================
+   НОВЫЙ MAIN: ПЕРЕКЛЮЧАТЕЛЬ ВИДОВ
+   ========================================== */
+.view-switch {
+    display: flex;
+    background: var(--bg-secondary);
+    border-radius: 10px;
+    padding: 2px;
+    border: 1px solid var(--glass-border);
+}
+.view-btn {
+    background: transparent;
+    border: none;
+    color: var(--text-tertiary);
+    font-size: 11px;
+    font-weight: 600;
+    padding: 6px 10px;
+    border-radius: 8px;
+    cursor: pointer;
+    transition: 0.15s;
+    font-family: inherit;
+}
+.view-btn.active {
+    background: var(--card);
+    color: var(--text);
+    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+}
+
+/* ==========================================
+   КАЛЕНДАРЬ (ПОЛОСКА)
+   ========================================== */
+.calendar-header {
+    position: sticky;
+    top: 0;
+    z-index: 10;
+    background: var(--bg);
+    padding: 10px 0;
+    border-bottom: 1px solid var(--glass-border);
+    transition: 0.3s ease;
+}
+.calendar-week-strip {
+    display: flex;
+    justify-content: space-between;
+    padding: 0 10px;
+    cursor: pointer;
+}
+.cal-day {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 4px;
+    padding: 6px;
+    border-radius: 10px;
+    color: var(--text-secondary);
+}
+.cal-day.active {
+    background: var(--accent);
+    color: white;
+}
+.cal-day-name { font-size: 10px; text-transform: uppercase; font-weight: 600; }
+.cal-day-num { font-size: 16px; font-weight: 700; }
+.cal-day-dot {
+    width: 4px; height: 4px; border-radius: 50%;
+    background: var(--accent);
+    margin-top: 2px;
+}
+.cal-day.active .cal-day-dot { background: white; }
+
+/* ==========================================
+   ТАЙМЛАЙН (СЕТКА ЧАСОВ)
+   ========================================== */
+.timeline-wrapper {
+    position: relative;
+    overflow-y: auto;
+    height: calc(100vh - 250px); /* Примерная высота минус шапки */
+    padding-bottom: 100px;
+}
+.timeline-container {
+    position: relative;
+    padding-left: 60px; /* Место под часы */
+    padding-top: 20px;
+}
+.timeline-hour {
+    position: relative;
+    height: 60px; /* Высота одного часа */
+    border-top: 1px solid var(--glass-border);
+}
+.timeline-hour-label {
+    position: absolute;
+    left: -50px;
+    top: -10px;
+    font-size: 10px;
+    color: var(--text-tertiary);
+    font-weight: 600;
+    width: 40px;
+    text-align: right;
+}
+.timeline-task {
+    position: absolute;
+    left: 10px;
+    right: 10px;
+    background: var(--card);
+    border-left: 3px solid var(--accent);
+    border-radius: 8px;
+    padding: 8px 12px;
+    font-size: 12px;
+    color: var(--text);
+    box-shadow: 0 2px 8px rgba(0,0,0,0.2);
+    z-index: 2;
+}
+.timeline-task.reminder { border-left-color: var(--danger); } /* Красный для напоминаний */
+.timeline-task.habit { border-left-color: var(--success); opacity: 0.8; } /* Зеленый для привычек */
+.timeline-task-time { font-size: 10px; color: var(--text-tertiary); margin-bottom: 2px; }
+
+/* ==========================================
+   HABIT DASHBOARD (МОДАЛКА)
+   ========================================== */
+.habit-dash-github .habit-rep-block { background: transparent; padding: 0; border: none; }
+.habit-dash-github .habit-rep-header { margin-bottom: 6px; }
+.habit-dash-github .habit-rep-grid { grid-template-rows: repeat(7, 12px); grid-auto-columns: 12px; gap: 2px; }
+.habit-dash-github .habit-rep-cell { width: 12px; height: 12px; border-radius: 3px; }
+
+.fab-main-add {
+    position: fixed; /* <--- Именно это заставляет её висеть над меню */
+    bottom: calc(env(safe-area-inset-bottom, 0px) + 82px); /* 82px — это высота, на которой висит поиск */
+    right: 10px;
+    width: 45px;
+    height: 45px;
+    border-radius: 50%;
+    background: var(--accent);
+    color: white;
+    font-size: 26px;
+    border: none;
+    cursor: pointer;
+    z-index: 86; /* Выше, чем меню, чтобы не перекрывалась */
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    box-shadow: 0 8px 24px rgba(0,0,0,0.3), 0 0 12px rgba(var(--accent-rgb), 0.4);
+}

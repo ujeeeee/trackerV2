@@ -20,54 +20,46 @@
                         <div class="home-greeting" id="mainGreeting">Привет</div>
                         <div class="home-date" id="mainDate"></div>
                     </div>
-                    <button class="settings-btn" onclick="openSettings()">⚙️</button>
+                    <div style="display:flex; gap:8px; align-items:center;">
+                        <div class="view-switch">
+                            <button class="view-btn active" id="btnViewList" onclick="switchMainView('list')">Список</button>
+                            <button class="view-btn" id="btnViewCal" onclick="switchMainView('calendar')">Календарь</button>
+                        </div>
+                        <button class="settings-btn" onclick="openSettings()">⚙️</button>
+                    </div>
                 </div>
-                <div class="screen-content">
+                
+                <!-- ВИД 1: СПИСОК -->
+                <div class="screen-content" id="main-list-view">
                     <div id="mainRemindersWidget"></div>
                     <div id="mainTodosWidget"></div>
-                    <div id="mainHabitsWidget"></div>
+                    <div id="mainHabitsWidget" onclick="openHabitDashboard()"></div> <!-- Теперь кликабельно -->
                     <div id="mainMoneyWidget"></div>
                     <div id="mainNYWidget"></div>
+                </div>
+
+                <!-- ВИД 2: КАЛЕНДАРЬ / ТАЙМЛАЙН -->
+                <div class="screen-content" id="main-calendar-view" style="display:none; padding:0;">
+                    <div class="calendar-header" id="calendarHeader">
+                        <div class="calendar-week-strip" id="calendarWeekStrip"></div>
+                        <div class="calendar-month-grid" id="calendarMonthGrid" style="display:none;"></div>
+                    </div>
+                    <div class="timeline-wrapper" id="timelineWrapper">
+                        <div class="timeline-container" id="timelineContainer"></div>
+                    </div>
                 </div>
             </div>
         </div>
 
-        <!-- ========== DISCIPLINE ========== -->
-        <div class="screen" data-screen-name="Discipline">
+                <!-- ========== GOALS ========== -->
+        <div class="screen" data-screen-name="Goals">
             <div class="screen-inner">
                 <div class="screen-header">
-                    <h2>🎯 Discipline</h2>
+                    <h2>🎯 Goals</h2>
                     <button class="settings-btn" onclick="openSettings()">⚙️</button>
                 </div>
-                <div class="tabs">
-                    <button class="tab active" onclick="switchSubTab('discipline', 'habits', this)">Привычки</button>
-                    <button class="tab" onclick="switchSubTab('discipline', 'goals', this)">Цели</button>
-                </div>
                 <div class="screen-content">
-
-                    <div id="discipline-habits" class="subtab active">
-                        <div class="goals-header">
-                            <span class="goals-header-title">Дела</span>
-                            <button class="btn-icon-add" onclick="openTodoModal()">+</button>
-                        </div>
-                        <div id="todosList"></div>
-
-                        <div class="goals-header" style="margin-top:24px;">
-                            <span class="goals-header-title">Привычки</span>
-                            <div style="display:flex;gap:4px;">
-                                <button class="btn-icon-add" onclick="openHabitReport()">📊</button>
-                                <button class="btn-icon-add" onclick="openHabitModal()">+</button>
-                            </div>
-                        </div>
-                        <div class="week-nav">
-                            <button class="week-nav-btn" onclick="weekPrev()">‹</button>
-                            <div class="week-range" id="weekRange"></div>
-                            <button class="week-nav-btn" onclick="weekNext()">›</button>
-                        </div>
-                        <div id="weekGrid"></div>
-                    </div>
-
-                    <div id="discipline-goals" class="subtab">
+                    <div id="discipline-goals" class="subtab active" style="display:block; position:relative; height: 100%;">
                         <div class="tree-wrap" id="treeWrap">
                             <div class="tree-breadcrumb" id="treeBreadcrumb"></div>
                             <svg class="tree-svg" id="treeSvg" xmlns="http://www.w3.org/2000/svg"></svg>
@@ -86,7 +78,6 @@
                             <button class="tree-action-btn tree-action-danger" id="treeActionDelete" onclick="treeDelete()">🗑</button>
                         </div>
                     </div>
-
                 </div>
             </div>
         </div>
@@ -384,13 +375,15 @@
     </div>
 </div>
 
+<!-- ПЛАВАЮЩАЯ КНОПКА ДОБАВЛЕНИЯ -->
+<button class="fab-main-add" id="mainAddBtn" onclick="openAddMenu()">+</button>
+
 <!-- ========================================== -->
 <!-- НИЖНЕЕ МЕНЮ -->
 <!-- ========================================== -->
 <nav class="bottom-nav" id="bottomNav">
     <button class="nav-btn" data-index="0" onclick="goToScreen(0)"><span class="nav-icon">📱</span><span class="nav-label">Main</span></button>
-    <button class="nav-btn" data-index="1" onclick="goToScreen(1)"><span class="nav-icon">🎯</span><span class="nav-label">Discipline</span></button>
-    <button class="nav-btn" data-index="2" onclick="goToScreen(2)"><span class="nav-icon">💸</span><span class="nav-label">Cash</span></button>
+<button class="nav-btn" data-index="1" onclick="goToScreen(1)"><span class="nav-icon">🎯</span><span class="nav-label">Goals</span></button>    <button class="nav-btn" data-index="2" onclick="goToScreen(2)"><span class="nav-icon">💸</span><span class="nav-label">Cash</span></button>
     <button class="nav-btn" data-index="3" onclick="goToScreen(3)"><span class="nav-icon">💪🏽</span><span class="nav-label">Gym</span></button>
     <button class="nav-btn" data-index="4" onclick="goToScreen(4)"><span class="nav-icon">📍</span><span class="nav-label">Places</span></button>
     <button class="nav-btn" data-index="5" onclick="goToScreen(5)"><span class="nav-icon">🎬</span><span class="nav-label">Film</span></button>
@@ -979,6 +972,44 @@
         <div class="modal-handle"></div>
         <h3 class="modal-title">Привычки</h3>
         <div id="habitReportBody"></div>
+    </div>
+</div>
+
+<!-- HABIT DASHBOARD (СПИСОК ПРИВЫЧЕК) -->
+<div class="modal-overlay" id="habitDashboardModal">
+    <div class="modal-sheet">
+        <div class="modal-handle"></div>
+        <h3 class="modal-title">Привычки</h3>
+        <div class="habit-dash-week" style="margin-bottom: 24px;">
+            <div class="week-nav">
+                <button class="week-nav-btn" onclick="hdWeekPrev()">‹</button>
+                <div class="week-range" id="hdWeekRange"></div>
+                <button class="week-nav-btn" onclick="hdWeekNext()">›</button>
+            </div>
+            <div id="hdWeekGrid"></div>
+        </div>
+        <div class="habit-dash-github">
+            <div class="habit-rep-list" id="hdGithubGrid"></div>
+        </div>
+    </div>
+</div>
+
+<!-- МОДАЛКА ВЫБОРА: ЧТО ДОБАВИТЬ? -->
+<div class="modal-overlay" id="addMenuModal">
+    <div class="modal-sheet" style="padding-bottom: 30px;">
+        <div class="modal-handle"></div>
+        <h3 class="modal-title">Что добавить?</h3>
+        <div style="display:flex; flex-direction:column; gap:10px;">
+            <button class="modal-btn primary" style="padding: 18px; font-size: 16px;" onclick="chooseAddType('todo')">
+                📝 Дело
+            </button>
+            <button class="modal-btn secondary" style="padding: 18px; font-size: 16px; border-color: var(--warning); color: var(--warning);" onclick="chooseAddType('reminder')">
+                🔔 Напоминание
+            </button>
+            <button class="modal-btn secondary" style="padding: 18px; font-size: 16px; border-color: var(--success); color: var(--success);" onclick="chooseAddType('habit')">
+                🔥 Привычка
+            </button>
+        </div>
     </div>
 </div>
 

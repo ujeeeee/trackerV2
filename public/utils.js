@@ -92,9 +92,9 @@ function getCollapsedHeaderHTML(key, id, name, count, extra = '') {
 function rerenderCurrent() {
     const i = currentScreenIndex;
     if (i === 0) return;
-    if (i === 1) { renderAreas(); renderTodos(); renderWeek(habits); }
-    if (i === 2) renderPrograms();
-    if (i === 3) { renderBudget(cashBudget); renderWishlist(); renderPiggy(); }
+    if (i === 1) renderTree(); // В Goals только дерево
+    if (i === 2) { renderBudget(cashBudget); renderWishlist(); renderPiggy(); }
+    if (i === 3) renderPrograms();
     if (i === 4) { renderPlacesWant(); renderPlacesVisited(); }
     if (i === 5) { renderFilmGenres(); renderFilmWatched(); }
     if (i === 6) { renderTea(); renderTeaShops(); }

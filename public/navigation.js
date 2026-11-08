@@ -5,10 +5,9 @@ function goToScreen(index) {
     if (index < 0 || index >= TOTAL_MAIN_SCREENS) return;
     currentScreenIndex = index;
 
-    const names = ['Main', 'Discipline', 'Cash', 'Gym', 'Places', 'Film', 'Tea'];
+    const names = ['Main', 'Goals', 'Cash', 'Gym', 'Places', 'Film', 'Tea'];
     const screenName = names[index];
 
-    // Показываем нужный экран по его имени (data-screen-name)
     document.querySelectorAll('.screen').forEach(s => {
         s.classList.toggle('active', s.dataset.screenName === screenName);
     });
@@ -27,9 +26,9 @@ function goToScreen(index) {
     window.scrollTo(0, 0);
 
     if (index === 0) loadMain();
-    if (index === 1) { loadAreas(); loadHabits(); loadWeek(); loadTodos(); }
-    if (index === 2) { loadBudget(); loadWishlist(); loadPiggy(); } // Cash
-    if (index === 3) { loadPrograms(); loadMetrics(); } // Gym
+    if (index === 1) loadAreas(); // В Goals теперь только цели!
+    if (index === 2) { loadBudget(); loadWishlist(); loadPiggy(); }
+    if (index === 3) { loadPrograms(); loadMetrics(); }
     if (index === 4) loadPlaces();
     if (index === 5) loadFilm();
     if (index === 6) loadTea();
@@ -48,13 +47,17 @@ function switchSubTab(parent, tab, btn) {
 // ===== SETTINGS =====
 // ==========================================
 function openSettings() {
+    document.body.classList.add('settings-open');
     updateSettingsUI();
     document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
     document.querySelector('[data-screen-name="Settings"]').classList.add('active');
     document.querySelectorAll('.nav-btn').forEach(b => b.classList.remove('active'));
     window.scrollTo(0, 0);
 }
-function closeSettings() { goToScreen(currentScreenIndex); }
+function closeSettings() { 
+    document.body.classList.remove('settings-open');
+    goToScreen(currentScreenIndex); 
+}
 
 function updateSettingsUI() {
     const name = currentUser?.name || tgUser.name || 'Друг';
