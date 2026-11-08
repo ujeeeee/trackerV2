@@ -28,7 +28,7 @@ router.get('/main', authMiddleware, async (req, res) => {
     // --- Дела (только на выбранную дату!) ---
     const { data: todos } = await supabase.from('disc_todos').select('*')
         .eq('tg_id', req.tg_id).eq('done', false).eq('is_reminder', false)
-        .eq('date', todayStr); // <-- Берем строго на выбранный день
+
 
     const todosList = (todos || []).map(t => ({
         id: t.id,

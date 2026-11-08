@@ -28,6 +28,12 @@
                         <button class="settings-btn" onclick="openSettings()">⚙️</button>
                     </div>
                 </div>
+
+                <div class="tabs has-search">
+                    <button class="tab active" id="btnViewList" onclick="switchMainView('list')">Список</button>
+                    <button class="tab" id="btnViewCal" onclick="switchMainView('calendar')">Календарь</button>
+                </div>
+                <button class="tab-search-btn" onclick="openAddMenu()" style="font-size: 28px; font-weight: 300; padding-bottom: 2px;">+</button>
                 
                 <!-- ВИД 1: СПИСОК -->
                 <div class="screen-content" id="main-list-view">
@@ -374,9 +380,6 @@
 
     </div>
 </div>
-
-<!-- ПЛАВАЮЩАЯ КНОПКА ДОБАВЛЕНИЯ -->
-<button class="fab-main-add" id="mainAddBtn" onclick="openAddMenu()">+</button>
 
 <!-- ========================================== -->
 <!-- НИЖНЕЕ МЕНЮ -->
