@@ -5,6 +5,7 @@ let mainView = 'list';
 let mainSelectedDate = localDate(new Date());
 let allMainTodos = [];
 let allMainReminders = [];
+let allMainHabitsGlobal = []; // Хранилище всех привычек для редактирования
 
 function getMonday(d) {
     d = new Date(d);
@@ -377,8 +378,8 @@ async function renderHabitDashboard() {
         weekHtml += `<div class="week-header-cell ${localDate(d) === today ? 'today' : ''}">${dn[i]}<span class="week-header-date">${d.getDate()}</span></div>`;
     }
     weekHtml += `</div>`;
-    weekData.forEach(h => {
-        weekHtml += `<div class="week-row"><div class="week-habit-name">${escapeHtml(h.name)}</div>`;
+        weekData.forEach(h => {
+        weekHtml += `<div class="week-row"><div class="week-habit-name" style="cursor:pointer;" onclick="openHabitEdit(${h.id})">${escapeHtml(h.name)}</div>`;
         h.week.forEach(day => {
             if (!day.scheduled) { weekHtml += `<div class="week-cell not-scheduled"></div>`; return; }
             const isFuture = day.date > today;
@@ -392,6 +393,7 @@ async function renderHabitDashboard() {
     document.getElementById('hdWeekGrid').innerHTML = weekHtml;
     
     const { habits: allHabits } = await api('/api/disc/habits?days=365');
+    allMainHabitsGlobal = allHabits; // <--- ДОБАВИТЬ ЭТУ СТРОКУ
     let ghHtml = '';
     const todayDate = new Date(); todayDate.setHours(12,0,0,0);
     const startGh = new Date(todayDate); startGh.setMonth(startGh.getMonth() - 6);
@@ -412,8 +414,7 @@ async function renderHabitDashboard() {
             });
         });
         ghHtml += `<div class="habit-rep-block">
-            <div class="habit-rep-header"><div class="habit-rep-name">${escapeHtml(h.name)}</div><div class="habit-rep-count">${done.size}</div></div>
-            <div class="habit-rep-scroll"><div class="habit-rep-grid">${grid}</div></div>
+            <div class="habit-rep-header"><div class="habit-rep-name" style="cursor:pointer;" onclick="openHabitEdit(${h.id})">${escapeHtml(h.name)}</div><div class="habit-rep-count">${done.size}</div></div>
         </div>`;
     });
     document.getElementById('hdGithubGrid').innerHTML = ghHtml;
@@ -449,18 +450,37 @@ function openAddItemModal(id = null, type = 'todo') {
     const titleEl = document.getElementById('addItemTitle');
     const delBtn = document.getElementById('addItemDeleteBtn');
     
+    // Настраиваем верхние кнопки (Дело / Напоминание / Привычка)
     document.querySelectorAll('#addTypeTabs [data-type]').forEach(b => {
         b.classList.toggle('active', b.dataset.type === type);
         b.disabled = (id !== null);
     });
 
+    // Показываем нужные поля
     document.getElementById('fields-todo').style.display = type === 'habit' ? 'none' : 'block';
     document.getElementById('fields-habit').style.display = type === 'habit' ? 'block' : 'none';
 
     if (id) {
+        // ========== РЕЖИМ РЕДАКТИРОВАНИЯ ==========
         titleEl.textContent = type === 'habit' ? 'Редактировать привычку' : 'Редактировать';
         delBtn.style.display = 'block';
-        if (type !== 'habit') {
+        
+        if (type === 'habit') {
+            // Подтягиваем данные привычки из глобальной переменной
+            const h = allMainHabitsGlobal.find(x => x.id === id);
+            if (h) {
+                document.getElementById('addHabitName').value = h.name || '';
+                addItemCtx.freq = h.frequency || 'daily';
+                addItemCtx.days = h.days_of_week || [1,2,3,4,5,6,7];
+                addItemCtx.interval = h.interval_days || 2;
+
+                // Подсвечиваем нужную кнопку периодичности
+                document.querySelectorAll('#fields-habit [data-freq]').forEach(b => {
+                    b.classList.toggle('active', b.dataset.freq === addItemCtx.freq);
+                });
+            }
+        } else {
+            // Подтягиваем данные дела или напоминания
             const t = [...allMainTodos, ...allMainReminders].find(x => x.id === id);
             if (t) {
                 document.getElementById('todoName').value = t.name || '';
@@ -470,21 +490,25 @@ function openAddItemModal(id = null, type = 'todo') {
             }
         }
     } else {
+        // ========== РЕЖИМ ДОБАВЛЕНИЯ ==========
         titleEl.textContent = type === 'todo' ? 'Новое дело' : type === 'reminder' ? 'Новое напоминание' : 'Новая привычка';
         delBtn.style.display = 'none';
         
+        // Очищаем все поля
         document.getElementById('todoName').value = '';
-        // Если мы в календаре, ставим текущую дату, иначе пусто
         document.getElementById('todoDate').value = (typeof mainView !== 'undefined' && mainView === 'calendar') ? mainSelectedDate : ''; 
         document.getElementById('todoTimeStart').value = '';
         document.getElementById('todoTimeEnd').value = '';
         document.getElementById('addHabitName').value = '';
         
+        // Сбрасываем настройки привычки на дефолтные
         addItemCtx.freq = 'daily';
         addItemCtx.days = [1,2,3,4,5,6,7];
         addItemCtx.interval = 2;
         document.querySelectorAll('#fields-habit [data-freq]').forEach(b => b.classList.toggle('active', b.dataset.freq === 'daily'));
     }
+    
+    // Отрисовываем кружочки/интервал и открываем окно
     updateHabitVisualWeek();
     openModal('addItemModal');
 }
@@ -618,5 +642,10 @@ async function deleteArchiveItem(id) {
     } catch (e) {
         alert('Ошибка: ' + e.message);
     }
+}
+
+function openHabitEdit(id) {
+    closeModal('habitDashboardModal'); // Закрываем окно дашборда
+    openAddItemModal(id, 'habit');     // Открываем универсальную модалку в режиме привычки
 }
 
