@@ -315,6 +315,15 @@ function openHabitDashboard() {
     renderHabitDashboard();
 }
 
+async function toggleWeekCell(habitId, dateStr) {
+    try {
+        await api(`/api/disc/habits/${habitId}/toggle`, 'POST', { date: dateStr });
+        await renderHabitDashboard(); // Сразу обновляем и таблицу, и график "как в гитхабе"
+    } catch (e) {
+        alert('Ошибка: ' + e.message);
+    }
+}
+
 async function renderHabitDashboard() {
     const startStr = localDate(hdWeekStart);
     const { habits: weekData } = await api(`/api/disc/habits/week?start=${startStr}`);
@@ -451,6 +460,8 @@ function openAddItemModal(id = null, type = 'todo') {
         document.getElementById('freqInterval').style.display = 'none';
         document.querySelectorAll('#fields-habit .day-opt').forEach(b => b.classList.add('active'));
     }
+            updateHabitVisualWeek();
+    }
     openModal('addItemModal');
 }
 
@@ -495,13 +506,40 @@ function pickFreq(freq, btn) {
     addItemCtx.freq = freq;
     document.querySelectorAll('#fields-habit [data-freq]').forEach(b => b.classList.remove('active'));
     btn.classList.add('active');
-    document.getElementById('freqDays').style.display = freq === 'days' ? 'block' : 'none';
+    
     document.getElementById('freqInterval').style.display = freq === 'interval' ? 'block' : 'none';
+    
+    updateHabitVisualWeek();
 }
 function toggleDow(dow) {
+    if (addItemCtx.freq !== 'days') return; // Работает только если выбран режим "Дни недели"
     const i = addItemCtx.days.indexOf(dow);
-    if (i >= 0) addItemCtx.days.splice(i, 1); else addItemCtx.days.push(dow);
-    document.querySelectorAll('#fields-habit .day-opt').forEach(b => b.classList.toggle('active', addItemCtx.days.includes(parseInt(b.dataset.dow))));
+    if (i >= 0) addItemCtx.days.splice(i, 1); 
+    else addItemCtx.days.push(dow);
+    
+    updateHabitVisualWeek();
+}
+
+function updateHabitVisualWeek() {
+    const container = document.getElementById('habitVisualWeek');
+    if (!container) return;
+    
+    const days = ['Пн','Вт','Ср','Чт','Пт','Сб','Вс'];
+
+    // Если выбран интервал — показываем текст
+    if (addItemCtx.freq === 'interval') {
+        const val = parseInt(document.getElementById('intervalInput').value) || 2;
+        container.innerHTML = `<div style="text-align:center; color:var(--text-secondary); font-size:13px; width:100%;">Повтор каждые ${val} ${val === 1 ? 'день' : val < 5 ? 'дня' : 'дней'}</div>`;
+        return;
+    }
+
+    // Если выбран "Каждый день" или "Дни недели" — рисуем 7 кружочков
+    container.innerHTML = days.map((d, i) => {
+        const dow = i + 1; // 1-Пн, 7-Вс
+        const isActive = addItemCtx.freq === 'daily' || addItemCtx.days.includes(dow);
+        const click = addItemCtx.freq === 'days' ? `onclick="toggleDow(${dow})"` : '';
+        return `<div class="habit-week-circle ${isActive ? 'active' : ''}" ${click}>${d}</div>`;
+    }).join('');
 }
 
 async function openArchive() {

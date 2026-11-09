@@ -424,17 +424,8 @@
             <button class="freq-tab" data-freq="days" onclick="pickFreq('days', this)">Дни недели</button>
             <button class="freq-tab" data-freq="interval" onclick="pickFreq('interval', this)">Интервал</button>
         </div>
-        <div id="freqDays" style="display:none;margin-top:12px;">
-            <div class="days-picker">
-                <button class="day-opt" data-dow="1" onclick="toggleDow(1)">Пн</button>
-                <button class="day-opt" data-dow="2" onclick="toggleDow(2)">Вт</button>
-                <button class="day-opt" data-dow="3" onclick="toggleDow(3)">Ср</button>
-                <button class="day-opt" data-dow="4" onclick="toggleDow(4)">Чт</button>
-                <button class="day-opt" data-dow="5" onclick="toggleDow(5)">Пт</button>
-                <button class="day-opt" data-dow="6" onclick="toggleDow(6)">Сб</button>
-                <button class="day-opt" data-dow="7" onclick="toggleDow(7)">Вс</button>
-            </div>
-        </div>
+            <!-- Визуальный выбор дней -->
+            <div id="habitVisualWeek" class="habit-visual-week"></div>
         <div id="freqInterval" style="display:none;margin-top:12px;">
             <div class="interval-row">
                 <span>Каждые</span>

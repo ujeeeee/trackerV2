@@ -480,11 +480,49 @@ body {
 .todo-meta .today { color: var(--accent); }
 .todo-meta .tomorrow { color: var(--warning); }
 .todo-time-row {
-    display: flex; align-items: center; gap: 10px;
-    margin-bottom: 4px;
+    display: flex; align-items: center; gap: 8px;
+    margin-bottom: 16px; width: 100%;
 }
-.todo-time-row .modal-input { margin-bottom: 0; flex: 1; }
+.todo-time-row .modal-input { 
+    margin-bottom: 0; 
+    flex: 1; 
+    min-width: 0; /* Чтобы инпуты не вылезали */
+    padding: 12px 10px; 
+    font-size: 15px;
+}
 .todo-time-sep { color: var(--text-tertiary); font-size: 14px; }
+
+/* Добавляем стили для новых кружочков дней недели */
+.habit-visual-week {
+    display: flex;
+    justify-content: space-between;
+    gap: 4px;
+    margin-top: 12px;
+    padding: 8px;
+    background: var(--bg-secondary);
+    border-radius: 12px;
+    border: 1px solid var(--glass-border);
+}
+.habit-week-circle {
+    width: 36px;
+    height: 36px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 12px;
+    font-weight: 600;
+    color: var(--text-tertiary);
+    background: transparent;
+    transition: 0.2s;
+    cursor: pointer;
+    user-select: none;
+}
+.habit-week-circle.active {
+    background: var(--accent);
+    color: white;
+    box-shadow: 0 2px 8px rgba(var(--accent-rgb), 0.4);
+}
 
 /* ==========================================
    ПРИВЫЧКИ (неделя)
