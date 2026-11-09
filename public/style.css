@@ -1783,7 +1783,7 @@ textarea.modal-input {
 /* Controls */
 .tree-controls {
     position: fixed;
-    bottom: calc(env(safe-area-inset-bottom, 0px) + 179px);
+    bottom: calc(env(safe-area-inset-bottom, 0px) + 136px);
     left: 10px;
     right: 10px;
     max-width: 460px;
@@ -1820,9 +1820,10 @@ textarea.modal-input {
 }
 
 /* Bottom action bar */
+/* Bottom action bar */
 .tree-actions {
     position: fixed;
-    bottom: calc(env(safe-area-inset-bottom, 0px) + 132px);
+    bottom: calc(env(safe-area-inset-bottom, 0px) + 82px);
     left: 10px;
     right: 10px;
     max-width: 460px;
