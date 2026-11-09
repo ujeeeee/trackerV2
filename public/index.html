@@ -411,36 +411,6 @@
     </div>
 </div>
 
-<!-- ПРИВЫЧКА -->
-<div class="modal-overlay" id="habitModal">
-    <div class="modal-sheet">
-        <div class="modal-handle"></div>
-        <h3 class="modal-title" id="habitModalTitle">Новая привычка</h3>
-        <div class="field-label">Название</div>
-        <input type="text" class="modal-input" id="habitName" placeholder="Например: Зал" />
-        <div class="field-label">Периодичность</div>
-        <div class="freq-tabs">
-            <button class="freq-tab active" data-freq="daily" onclick="pickFreq('daily', this)">Каждый день</button>
-            <button class="freq-tab" data-freq="days" onclick="pickFreq('days', this)">Дни недели</button>
-            <button class="freq-tab" data-freq="interval" onclick="pickFreq('interval', this)">Интервал</button>
-        </div>
-            <!-- Визуальный выбор дней -->
-            <div id="habitVisualWeek" class="habit-visual-week"></div>
-        <div id="freqInterval" style="display:none;margin-top:12px;">
-            <div class="interval-row">
-                <span>Каждые</span>
-                <input type="number" class="interval-input" id="intervalInput" value="2" min="2" max="60" />
-                <span>дней</span>
-            </div>
-        </div>
-        <div class="modal-actions" style="margin-top:20px;">
-            <button class="modal-btn danger" id="habitDeleteBtn" style="display:none;" onclick="deleteHabit()">Удалить</button>
-            <button class="modal-btn secondary" onclick="closeHabitModal()">Отмена</button>
-            <button class="modal-btn primary" onclick="saveHabit()">Сохранить</button>
-        </div>
-    </div>
-</div>
-
 <!-- УНИВЕРСАЛЬНАЯ МОДАЛКА ДОБАВЛЕНИЯ -->
 <div class="modal-overlay" id="addItemModal">
     <div class="modal-sheet">
@@ -476,17 +446,7 @@
                 <button class="freq-tab" data-freq="days" onclick="pickFreq('days', this)">Дни недели</button>
                 <button class="freq-tab" data-freq="interval" onclick="pickFreq('interval', this)">Интервал</button>
             </div>
-            <div id="freqDays" style="display:none;margin-top:12px;">
-                <div class="days-picker">
-                    <button class="day-opt" data-dow="1" onclick="toggleDow(1)">Пн</button>
-                    <button class="day-opt" data-dow="2" onclick="toggleDow(2)">Вт</button>
-                    <button class="day-opt" data-dow="3" onclick="toggleDow(3)">Ср</button>
-                    <button class="day-opt" data-dow="4" onclick="toggleDow(4)">Чт</button>
-                    <button class="day-opt" data-dow="5" onclick="toggleDow(5)">Пт</button>
-                    <button class="day-opt" data-dow="6" onclick="toggleDow(6)">Сб</button>
-                    <button class="day-opt" data-dow="7" onclick="toggleDow(7)">Вс</button>
-                </div>
-            </div>
+            <div id="habitVisualWeek" class="habit-visual-week"></div>
             <div id="freqInterval" style="display:none;margin-top:12px;">
                 <div class="interval-row">
                     <span>Каждые</span>

@@ -70,22 +70,14 @@ function bindItemLongPress(el, onTap, onLongPress) {
         }, 500);
     });
 
-    el.addEventListener('pointerup', () => {
-        clearTimeout(timer);
-    });
-
-    el.addEventListener('pointercancel', () => {
-        clearTimeout(timer);
-    });
-
-    el.addEventListener('pointermove', () => {
-        clearTimeout(timer);
-    });
+    el.addEventListener('pointerup', () => clearTimeout(timer));
+    el.addEventListener('pointercancel', () => clearTimeout(timer));
+    el.addEventListener('pointermove', () => clearTimeout(timer));
 
     el.addEventListener('click', (e) => {
         if (!isLong) {
             e.preventDefault();
-            onTap();
+            onTap(); // При обычном нажатии открываем редактирование
         }
     });
 
@@ -142,11 +134,9 @@ function renderMainTodos(todos) {
     c.querySelectorAll('.main-todo-item').forEach((el, i) => {
         const t = todos[i];
         bindItemLongPress(el, 
-            () => openAddItemModal(t.id, 'todo'), // Тап = редактирование
-            () => { // Зажатие = алерт
-                if (confirm(`Выполнить дело «${t.name}»?`)) {
-                    completeFromMain(t.id);
-                }
+            () => openAddItemModal(t.id, 'todo'), // Тап
+            () => { // Зажатие
+                if (confirm(`Выполнить дело «${t.name}»?`)) completeFromMain(t.id);
             }
         );
     });
@@ -428,12 +418,9 @@ function openAddItemModal(id = null, type = 'todo') {
     document.getElementById('fields-habit').style.display = type === 'habit' ? 'block' : 'none';
 
     if (id) {
-        titleEl.textContent = 'Редактировать';
+        titleEl.textContent = type === 'habit' ? 'Редактировать привычку' : 'Редактировать';
         delBtn.style.display = 'block';
-        if (type === 'habit') {
-            titleEl.textContent = 'Редактировать привычку';
-            document.getElementById('addHabitName').value = '';
-        } else {
+        if (type !== 'habit') {
             const t = [...allMainTodos, ...allMainReminders].find(x => x.id === id);
             if (t) {
                 document.getElementById('todoName').value = t.name || '';
@@ -446,8 +433,9 @@ function openAddItemModal(id = null, type = 'todo') {
         titleEl.textContent = type === 'todo' ? 'Новое дело' : type === 'reminder' ? 'Новое напоминание' : 'Новая привычка';
         delBtn.style.display = 'none';
         
+        // Полный сброс полей
         document.getElementById('todoName').value = '';
-        document.getElementById('todoDate').value = '';
+        document.getElementById('todoDate').value = mainView === 'calendar' ? mainSelectedDate : ''; // Если открыли из календаря — ставим дату
         document.getElementById('todoTimeStart').value = '';
         document.getElementById('todoTimeEnd').value = '';
         document.getElementById('addHabitName').value = '';
@@ -456,12 +444,9 @@ function openAddItemModal(id = null, type = 'todo') {
         addItemCtx.freq = 'daily';
         addItemCtx.days = [1,2,3,4,5,6,7];
         document.querySelectorAll('#fields-habit [data-freq]').forEach(b => b.classList.toggle('active', b.dataset.freq === 'daily'));
-        document.getElementById('freqDays').style.display = 'none';
         document.getElementById('freqInterval').style.display = 'none';
-        document.querySelectorAll('#fields-habit .day-opt').forEach(b => b.classList.add('active'));
     }
-            updateHabitVisualWeek();
-    }
+    updateHabitVisualWeek();
     openModal('addItemModal');
 }
 
@@ -571,6 +556,49 @@ async function deleteArchiveItem(id) {
     try {
         await api(`/api/disc/todos/${id}`, 'DELETE');
         openArchive(); // Перезагружаем список
+    } catch (e) {
+        alert('Ошибка: ' + e.message);
+    }
+}
+
+function updateHabitVisualWeek() {
+    const container = document.getElementById('habitVisualWeek');
+    if (!container) return;
+    const days = ['Пн','Вт','Ср','Чт','Пт','Сб','Вс'];
+
+    if (addItemCtx.freq === 'interval') {
+        const val = parseInt(document.getElementById('intervalInput').value) || 2;
+        container.innerHTML = `<div style="text-align:center; color:var(--text-secondary); font-size:13px; width:100%;">Повтор каждые ${val} дн.</div>`;
+        return;
+    }
+
+    container.innerHTML = days.map((d, i) => {
+        const dow = i + 1; 
+        const isActive = addItemCtx.freq === 'daily' || addItemCtx.days.includes(dow);
+        const click = addItemCtx.freq === 'days' ? `onclick="toggleDow(${dow})"` : '';
+        return `<div class="habit-week-circle ${isActive ? 'active' : ''}" ${click}>${d}</div>`;
+    }).join('');
+}
+
+function pickFreq(freq, btn) {
+    addItemCtx.freq = freq;
+    document.querySelectorAll('#fields-habit [data-freq]').forEach(b => b.classList.remove('active'));
+    btn.classList.add('active');
+    document.getElementById('freqInterval').style.display = freq === 'interval' ? 'block' : 'none';
+    updateHabitVisualWeek();
+}
+
+function toggleDow(dow) {
+    if (addItemCtx.freq !== 'days') return;
+    const i = addItemCtx.days.indexOf(dow);
+    if (i >= 0) addItemCtx.days.splice(i, 1); else addItemCtx.days.push(dow);
+    updateHabitVisualWeek();
+}
+
+async function toggleWeekCell(habitId, dateStr) {
+    try {
+        await api(`/api/disc/habits/${habitId}/toggle`, 'POST', { date: dateStr });
+        await renderHabitDashboard(); // Перерисовываем, чтобы галочка и гитхаб-сетка обновились
     } catch (e) {
         alert('Ошибка: ' + e.message);
     }
