@@ -210,9 +210,13 @@ function renderMainHabits(habits) {
     c.querySelectorAll('.main-habit-item').forEach((el, i) => {
         const h = habits[i];
         bindItemLongPress(el, 
-            () => openHabitDashboard(), // Тап = открываем дашборд привычек
-            () => { // Зажатие = алерт на выполнение
-                if (confirm(`Отметить привычку «${h.name}» выполненной?`)) {
+            () => { // Тап
+                if (confirm(`Отметить привычку «${h.name}» выполненной на сегодня?`)) {
+                    completeHabitFromMain(h.id);
+                }
+            },
+            () => { // Зажатие (сделаем то же самое)
+                if (confirm(`Отметить привычку «${h.name}» выполненной на сегодня?`)) {
                     completeHabitFromMain(h.id);
                 }
             }
@@ -373,12 +377,15 @@ async function renderHabitDashboard() {
     const today = localDate(new Date());
     const dn = ['Пн','Вт','Ср','Чт','Пт','Сб','Вс'];
     let weekHtml = `<div class="week-grid-table"><div class="week-header"><div class="week-header-cell">Привычка</div>`;
+    
     for (let i = 0; i < 7; i++) {
         const d = new Date(hdWeekStart); d.setDate(d.getDate() + i);
         weekHtml += `<div class="week-header-cell ${localDate(d) === today ? 'today' : ''}">${dn[i]}<span class="week-header-date">${d.getDate()}</span></div>`;
     }
     weekHtml += `</div>`;
-        weekData.forEach(h => {
+    
+    weekData.forEach(h => {
+        // Добавили onclick="openHabitEdit(...)" для редактирования
         weekHtml += `<div class="week-row"><div class="week-habit-name" style="cursor:pointer;" onclick="openHabitEdit(${h.id})">${escapeHtml(h.name)}</div>`;
         h.week.forEach(day => {
             if (!day.scheduled) { weekHtml += `<div class="week-cell not-scheduled"></div>`; return; }
@@ -392,31 +399,41 @@ async function renderHabitDashboard() {
     weekHtml += `</div>`;
     document.getElementById('hdWeekGrid').innerHTML = weekHtml;
     
+    // Загружаем все привычки за год для графика "Гитхаб"
     const { habits: allHabits } = await api('/api/disc/habits?days=365');
-    allMainHabitsGlobal = allHabits; // <--- ДОБАВИТЬ ЭТУ СТРОКУ
+    allMainHabitsGlobal = allHabits; // Сохраняем для редактирования
+
     let ghHtml = '';
     const todayDate = new Date(); todayDate.setHours(12,0,0,0);
     const startGh = new Date(todayDate); startGh.setMonth(startGh.getMonth() - 6);
     const ghMonday = getMonday(startGh);
     const daysArr = []; const cursor = new Date(ghMonday);
+    
     while (cursor <= todayDate) { daysArr.push(localDate(cursor)); cursor.setDate(cursor.getDate()+1); }
     const weeksArr = []; for (let i = 0; i < daysArr.length; i += 7) weeksArr.push(daysArr.slice(i, i + 7));
     
-    allHabits.forEach(h => {
-        const done = new Set((h.logs || []).filter(l => l.done).map(l => l.date));
-        let grid = '';
-        weeksArr.forEach(week => {
-            week.forEach(day => {
-                const isFuture = day > today, isDone = done.has(day);
-                let cls = 'habit-rep-cell';
-                if (isFuture) cls += ' future'; else if (isDone) cls += ' done'; else cls += ' empty';
-                grid += `<div class="${cls}"></div>`;
+    if (allHabits && allHabits.length > 0) {
+        allHabits.forEach(h => {
+            const done = new Set((h.logs || []).filter(l => l.done).map(l => l.date));
+            let grid = '';
+            weeksArr.forEach(week => {
+                week.forEach(day => {
+                    const isFuture = day > today, isDone = done.has(day);
+                    let cls = 'habit-rep-cell';
+                    if (isFuture) cls += ' future'; else if (isDone) cls += ' done'; else cls += ' empty';
+                    grid += `<div class="${cls}"></div>`;
+                });
             });
+            // Добавили onclick="openHabitEdit(...)" для редактирования
+            ghHtml += `<div class="habit-rep-block">
+                <div class="habit-rep-header"><div class="habit-rep-name" style="cursor:pointer;" onclick="openHabitEdit(${h.id})">${escapeHtml(h.name)}</div><div class="habit-rep-count">${done.size}</div></div>
+                <div class="habit-rep-scroll"><div class="habit-rep-grid">${grid}</div></div>
+            </div>`;
         });
-        ghHtml += `<div class="habit-rep-block">
-            <div class="habit-rep-header"><div class="habit-rep-name" style="cursor:pointer;" onclick="openHabitEdit(${h.id})">${escapeHtml(h.name)}</div><div class="habit-rep-count">${done.size}</div></div>
-        </div>`;
-    });
+    } else {
+        ghHtml = `<div class="widget-empty">Нет привычек для отображения</div>`;
+    }
+    
     document.getElementById('hdGithubGrid').innerHTML = ghHtml;
     setTimeout(() => { document.querySelectorAll('#hdGithubGrid .habit-rep-scroll').forEach(el => el.scrollLeft = el.scrollWidth); }, 50);
 }
