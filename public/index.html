@@ -313,6 +313,10 @@
                     </div>
 
                     <div class="settings-section">
+                        <button class="settings-item" onclick="openArchive()">
+                            <span class="settings-item-label"><span class="settings-item-icon">📦</span><span>Архив задач</span></span>
+                            <span class="settings-item-arrow">→</span>
+                        </button>
                         <div class="settings-section-title">Бекап</div>
                         <button class="settings-item" onclick="backupAll('discipline')">
                             <span class="settings-item-label"><span class="settings-item-icon">🎯</span><span>Discipline</span></span>
@@ -474,7 +478,7 @@
         <!-- Поля для Привычки -->
         <div id="fields-habit" style="display:none; margin-top:16px;">
             <div class="field-label">Название</div>
-            <input type="text" class="modal-input" id="habitName" placeholder="Например: Зал" />
+            <input type="text" class="modal-input" id="addHabitName" placeholder="Например: Зал" />
             <div class="field-label">Периодичность</div>
             <div class="freq-tabs">
                 <button class="freq-tab active" data-freq="daily" onclick="pickFreq('daily', this)">Каждый день</button>
@@ -1042,6 +1046,20 @@
             <button class="modal-btn secondary" style="padding: 18px; font-size: 16px; border-color: var(--success); color: var(--success);" onclick="chooseAddType('habit')">
                 🔥 Привычка
             </button>
+        </div>
+    </div>
+</div>
+
+<!-- АРХИВ -->
+<div class="modal-overlay" id="archiveModal">
+    <div class="modal-sheet">
+        <div class="modal-handle"></div>
+        <h3 class="modal-title">Архив задач</h3>
+        <div id="archiveList" style="max-height: 60vh; overflow-y: auto; margin-bottom: 16px;">
+            <div class="widget-empty">Загрузка...</div>
+        </div>
+        <div class="modal-actions">
+            <button class="modal-btn secondary" onclick="closeModal('archiveModal')">Закрыть</button>
         </div>
     </div>
 </div>

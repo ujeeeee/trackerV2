@@ -6,6 +6,13 @@ let mainSelectedDate = localDate(new Date());
 let allMainTodos = [];
 let allMainReminders = [];
 
+function getMonday(d) {
+    d = new Date(d);
+    var day = d.getDay(),
+        diff = d.getDate() - day + (day == 0 ? -6 : 1);
+    return new Date(d.setDate(diff));
+}
+
 async function loadMain() {
     try {
         const data = await api(`/api/main?date=${mainSelectedDate}`);
@@ -51,16 +58,11 @@ function renderMainGreeting() {
 
 function bindItemLongPress(el, onTap, onLongPress) {
     let timer;
-    let isMoved = false;
     let isLong = false;
-    let startX, startY;
-
+    
     el.addEventListener('pointerdown', (e) => {
         if (e.button !== undefined && e.button !== 0) return;
-        isMoved = false;
         isLong = false;
-        startX = e.clientX;
-        startY = e.clientY;
         timer = setTimeout(() => {
             isLong = true;
             if (navigator.vibrate) navigator.vibrate(50);
@@ -68,26 +70,25 @@ function bindItemLongPress(el, onTap, onLongPress) {
         }, 500);
     });
 
-    el.addEventListener('pointermove', (e) => {
-        if (Math.abs(e.clientX - startX) > 10 || Math.abs(e.clientY - startY) > 10) {
-            isMoved = true;
-            clearTimeout(timer);
-        }
-    });
-
-    el.addEventListener('pointerup', (e) => {
+    el.addEventListener('pointerup', () => {
         clearTimeout(timer);
-        if (!isLong && !isMoved) {
-            if (e.cancelable) e.preventDefault();
-            onTap();
-        }
     });
 
     el.addEventListener('pointercancel', () => {
         clearTimeout(timer);
-        isMoved = true;
     });
-    
+
+    el.addEventListener('pointermove', () => {
+        clearTimeout(timer);
+    });
+
+    el.addEventListener('click', (e) => {
+        if (!isLong) {
+            e.preventDefault();
+            onTap();
+        }
+    });
+
     el.addEventListener('contextmenu', (e) => e.preventDefault());
 }
 
@@ -409,24 +410,20 @@ function openAddItemModal(id = null, type = 'todo') {
     const titleEl = document.getElementById('addItemTitle');
     const delBtn = document.getElementById('addItemDeleteBtn');
     
-    // Сбрасываем и настраиваем верхние кнопки
     document.querySelectorAll('#addTypeTabs [data-type]').forEach(b => {
         b.classList.toggle('active', b.dataset.type === type);
-        b.disabled = (id !== null); // Если редактируем, кнопки блокируются
+        b.disabled = (id !== null);
     });
 
-    // Показываем нужный блок
     document.getElementById('fields-todo').style.display = type === 'habit' ? 'none' : 'block';
     document.getElementById('fields-habit').style.display = type === 'habit' ? 'block' : 'none';
 
     if (id) {
-        // РЕЖИМ РЕДАКТИРОВАНИЯ
-        titleEl.textContent = type === 'habit' ? 'Редактировать привычку' : 'Редактировать';
+        titleEl.textContent = 'Редактировать';
         delBtn.style.display = 'block';
-        
         if (type === 'habit') {
-            // Тут можно было бы заполнять поля привычки, если они передаются
-            document.getElementById('habitName').value = '';
+            titleEl.textContent = 'Редактировать привычку';
+            document.getElementById('addHabitName').value = '';
         } else {
             const t = [...allMainTodos, ...allMainReminders].find(x => x.id === id);
             if (t) {
@@ -437,19 +434,16 @@ function openAddItemModal(id = null, type = 'todo') {
             }
         }
     } else {
-        // РЕЖИМ ДОБАВЛЕНИЯ
         titleEl.textContent = type === 'todo' ? 'Новое дело' : type === 'reminder' ? 'Новое напоминание' : 'Новая привычка';
         delBtn.style.display = 'none';
         
-        // Полностью очищаем все поля
         document.getElementById('todoName').value = '';
         document.getElementById('todoDate').value = '';
         document.getElementById('todoTimeStart').value = '';
         document.getElementById('todoTimeEnd').value = '';
-        document.getElementById('habitName').value = '';
+        document.getElementById('addHabitName').value = '';
         document.getElementById('intervalInput').value = '2';
         
-        // Сбрасываем настройки привычки на дефолт
         addItemCtx.freq = 'daily';
         addItemCtx.days = [1,2,3,4,5,6,7];
         document.querySelectorAll('#fields-habit [data-freq]').forEach(b => b.classList.toggle('active', b.dataset.freq === 'daily'));
@@ -508,4 +502,38 @@ function toggleDow(dow) {
     const i = addItemCtx.days.indexOf(dow);
     if (i >= 0) addItemCtx.days.splice(i, 1); else addItemCtx.days.push(dow);
     document.querySelectorAll('#fields-habit .day-opt').forEach(b => b.classList.toggle('active', addItemCtx.days.includes(parseInt(b.dataset.dow))));
+}
+
+async function openArchive() {
+    openModal('archiveModal');
+    const list = document.getElementById('archiveList');
+    list.innerHTML = '<div class="widget-empty">Загрузка...</div>';
+    try {
+        const { items } = await api('/api/disc/archive');
+        if (!items.length) {
+            list.innerHTML = '<div class="widget-empty">Архив пуст</div>';
+            return;
+        }
+        list.innerHTML = items.map(t => `
+            <div class="cash-item" style="margin-bottom: 6px; cursor: default;">
+                <div style="flex:1;">
+                    <div class="cash-item-name" style="text-decoration: line-through; color: var(--text-tertiary);">${escapeHtml(t.name)}</div>
+                    <div class="cash-item-date">Дата: ${t.date ? formatDate(t.date) : 'Без даты'}</div>
+                </div>
+                <button class="modal-btn danger" style="flex: 0 0 auto; padding: 6px 12px; font-size: 12px;" onclick="deleteArchiveItem(${t.id})">Удалить</button>
+            </div>
+        `).join('');
+    } catch (e) {
+        list.innerHTML = `<div class="widget-empty">Ошибка: ${e.message}</div>`;
+    }
+}
+
+async function deleteArchiveItem(id) {
+    if (!confirm('Удалить задачу из архива навсегда?')) return;
+    try {
+        await api(`/api/disc/todos/${id}`, 'DELETE');
+        openArchive(); // Перезагружаем список
+    } catch (e) {
+        alert('Ошибка: ' + e.message);
+    }
 }

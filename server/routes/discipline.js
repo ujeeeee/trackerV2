@@ -102,6 +102,13 @@ router.get('/habits/week', authMiddleware, async (req, res) => {
 });
 
 // ---------- ДЕЛА ----------
+router.get('/archive', authMiddleware, async (req, res) => {
+    const { data } = await supabase.from('disc_todos').select('*')
+        .eq('tg_id', req.tg_id).eq('done', true)
+        .order('created_at', { ascending: false });
+    res.json({ items: data || [] });
+});
+
 router.get('/todos', authMiddleware, async (req, res) => {
     const { data } = await supabase.from('disc_todos').select('*')
         .eq('tg_id', req.tg_id)
