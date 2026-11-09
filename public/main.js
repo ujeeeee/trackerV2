@@ -87,28 +87,49 @@ function bindItemLongPress(el, onTap, onLongPress) {
 function renderMainReminders(reminders) {
     const c = document.getElementById('mainRemindersWidget');
     let html = `<div class="widget"><div class="widget-title"><span>Напоминания</span></div>`;
-    if (!reminders.length) {
+    
+    const todayStr = localDate(new Date());
+    const tomorrowStr = localDate(new Date(Date.now() + 86400000));
+    
+    // Сортировка от ближней даты к дальней
+    const sorted = [...reminders].sort((a, b) => {
+        if (!a.date) return 1;
+        if (!b.date) return -1;
+        return a.date.localeCompare(b.date);
+    });
+
+    if (!sorted.length) {
         html += `<div class="widget-empty">Нет напоминаний</div>`;
     } else {
-        reminders.forEach(t => {
-            const dateStr = t.date ? formatDate(t.date) : '';
+        sorted.forEach(t => {
+            let dateStr = '';
+            let badge = '';
+            
+            if (t.date) {
+                if (t.date === todayStr) badge = '!!';
+                else if (t.date === tomorrowStr) badge = '!';
+                dateStr = formatDate(t.date);
+            }
+            
             html += `<div class="main-todo-item" data-id="${t.id}">
                 <span class="main-todo-name">${escapeHtml(t.name)}</span>
-                ${dateStr ? `<span class="main-todo-date" style="color: var(--accent); font-weight: 700;">${dateStr}</span>` : ''}
+                ${dateStr ? `<span class="main-todo-date" style="color: var(--accent); font-weight: 700; display:flex; align-items:center; gap:4px;">
+                    ${badge ? `<span style="color: var(--danger); font-size:14px;">${badge}</span>` : ''}
+                    ${dateStr}
+                </span>` : ''}
             </div>`;
         });
     }
     html += `</div>`;
     c.innerHTML = html;
     
+    // Привязка событий как была
     c.querySelectorAll('.main-todo-item').forEach((el, i) => {
-        const t = reminders[i];
+        const t = sorted[i];
         bindItemLongPress(el, 
-            () => openAddItemModal(t.id, 'reminder'), // Тап = редактирование
-            () => { // Зажатие = алерт
-                if (confirm(`Выполнить напоминание «${t.name}»?`)) {
-                    completeFromMain(t.id);
-                }
+            () => openAddItemModal(t.id, 'reminder'),
+            () => {
+                if (confirm(`Выполнить напоминание «${t.name}»?`)) completeFromMain(t.id);
             }
         );
     });
@@ -117,25 +138,51 @@ function renderMainReminders(reminders) {
 function renderMainTodos(todos) {
     const c = document.getElementById('mainTodosWidget');
     let html = `<div class="widget"><div class="widget-title"><span>Дела</span></div>`;
-    if (!todos.length) {
+    
+    // Сортировка: сначала с датой/временем, потом по дате, потом по времени
+    const sorted = [...todos].sort((a, b) => {
+        const aHas = !!(a.date || a.time_start);
+        const bHas = !!(b.date || b.time_start);
+        
+        if (aHas && !bHas) return -1;
+        if (!aHas && bHas) return 1;
+        
+        if (aHas && bHas) {
+            const aD = a.date || '9999-12-31';
+            const bD = b.date || '9999-12-31';
+            if (aD !== bD) return aD.localeCompare(bD);
+            
+            const aT = a.time_start || '99:99';
+            const bT = b.time_start || '99:99';
+            return aT.localeCompare(bT);
+        }
+        return 0;
+    });
+
+    if (!sorted.length) {
         html += `<div class="widget-empty">Пусто</div>`;
     } else {
-        todos.forEach(t => {
-            const time = t.time_start ? `${t.time_start}${t.time_end ? '—' + t.time_end : ''}` : '';
+        sorted.forEach(t => {
+            let metaParts = [];
+            if (t.date) metaParts.push(formatDate(t.date));
+            if (t.time_start) metaParts.push(`${t.time_start}${t.time_end ? '—' + t.time_end : ''}`);
+            const metaStr = metaParts.join(' • ');
+
             html += `<div class="main-todo-item" data-id="${t.id}">
                 <span class="main-todo-name">${escapeHtml(t.name)}</span>
-                ${time ? `<span class="main-todo-time">${time}</span>` : ''}
+                ${metaStr ? `<span class="main-todo-time" style="font-size: 11px; color: var(--text-tertiary);">${metaStr}</span>` : ''}
             </div>`;
         });
     }
     html += `</div>`;
     c.innerHTML = html;
     
+    // Привязка событий
     c.querySelectorAll('.main-todo-item').forEach((el, i) => {
-        const t = todos[i];
+        const t = sorted[i];
         bindItemLongPress(el, 
-            () => openAddItemModal(t.id, 'todo'), // Тап
-            () => { // Зажатие
+            () => openAddItemModal(t.id, 'todo'),
+            () => {
                 if (confirm(`Выполнить дело «${t.name}»?`)) completeFromMain(t.id);
             }
         );
@@ -492,6 +539,14 @@ function pickFreq(freq, btn) {
     addItemCtx.freq = freq;
     document.querySelectorAll('#fields-habit [data-freq]').forEach(b => b.classList.remove('active'));
     btn.classList.add('active');
+    
+    // Если выбрали "Дни недели", сбрасываем все дни, чтобы можно было выбрать нужные
+    if (freq === 'days') {
+        addItemCtx.days = []; 
+    } else if (freq === 'daily') {
+        addItemCtx.days = [1,2,3,4,5,6,7];
+    }
+    
     updateHabitVisualWeek();
 }
 
