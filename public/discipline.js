@@ -254,12 +254,15 @@ function findNodeEl(el) { const svg = document.getElementById('treeSvg'); while 
 
 function updateActionsBar() {
     const bar = document.getElementById('treeActions'); if (!bar) return;
-    const btnBranch = document.getElementById('treeActionAddBranch'), btnGoal = document.getElementById('treeActionAddGoal'), btnEdit = document.getElementById('treeActionEdit'), btnDel = document.getElementById('treeActionDelete');
+    const btnBranch = document.getElementById('treeActionAddBranch'), 
+          btnGoal = document.getElementById('treeActionAddGoal'), 
+          btnEdit = document.getElementById('treeActionEdit'), 
+          btnDel = document.getElementById('treeActionDelete');
     
     if (!selectedNodeId) { 
-        bar.classList.remove('visible'); // Скрываем доп. панель
+        bar.classList.remove('visible');
         btnBranch.textContent = '+ Дерево'; 
-        btnBranch.style.display = 'block'; 
+        btnBranch.style.display = 'flex'; 
         return; 
     }
     const n = treeNodesById[selectedNodeId]; 
@@ -267,10 +270,10 @@ function updateActionsBar() {
     
     bar.classList.add('visible'); 
     btnBranch.textContent = '+ Ветка';
-    btnBranch.style.display = (n.type === 'root' || n.type === 'area') ? 'block' : 'none'; 
-    btnGoal.style.display = (n.type === 'area') ? 'block' : 'none';
-    btnEdit.style.display = (n.type !== 'root') ? 'block' : 'none'; 
-    btnDel.style.display = (n.type !== 'root') ? 'block' : 'none';
+    btnBranch.style.display = (n.type === 'root' || n.type === 'area') ? 'flex' : 'none'; 
+    btnGoal.style.display = (n.type === 'area') ? 'flex' : 'none';
+    btnEdit.style.display = (n.type !== 'root') ? 'flex' : 'none'; 
+    btnDel.style.display = (n.type !== 'root') ? 'flex' : 'none';
 }
 function updateBreadcrumb() {
     const el = document.getElementById('treeBreadcrumb'); if (!el) return;
