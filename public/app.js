@@ -224,6 +224,51 @@ function beautifyModals() {
     });
 }
 
+async function loadCollections() {
+    const container = document.getElementById('collectionsList');
+    if (!container) return;
+    container.innerHTML = '<div class="widget-empty" style="text-align:center;padding:40px 0;">Загрузка...</div>';
+    
+    try {
+        // Запрашиваем только цифры!
+        const stats = await api('/api/main/collections/stats');
+        
+        container.innerHTML = `
+            <div class="collection-card" onclick="openCollection('places')">
+                <div class="collection-icon">📍</div>
+                <div class="collection-info">
+                    <div class="collection-name">Places</div>
+                    <div class="collection-stats">${stats.places.total} ${plural(stats.places.total, 'место', 'места', 'мест')} · ${stats.places.visited} посещено</div>
+                    <div class="collection-desc">Кафе, рестораны, города</div>
+                </div>
+                <div class="collection-arrow">›</div>
+            </div>
+            
+            <div class="collection-card" onclick="openCollection('film')">
+                <div class="collection-icon">🎬</div>
+                <div class="collection-info">
+                    <div class="collection-name">Film</div>
+                    <div class="collection-stats">${stats.film.total} ${plural(stats.film.total, 'фильм', 'фильма', 'фильмов')} · ${stats.film.watched} просмотрено</div>
+                    <div class="collection-desc">Хочу, смотрю, посмотрел</div>
+                </div>
+                <div class="collection-arrow">›</div>
+            </div>
+            
+            <div class="collection-card" onclick="openCollection('tea')">
+                <div class="collection-icon">☕️</div>
+                <div class="collection-info">
+                    <div class="collection-name">Tea</div>
+                    <div class="collection-stats">${stats.tea.total} ${plural(stats.tea.total, 'сорт', 'сорта', 'сортов')} · ${stats.tea.shops} ${plural(stats.tea.shops, 'магазин', 'магазина', 'магазинов')}</div>
+                    <div class="collection-desc">Сорта, отзывы, магазины</div>
+                </div>
+                <div class="collection-arrow">›</div>
+            </div>
+        `;
+    } catch (e) {
+        container.innerHTML = `<div class="widget-empty" style="text-align:center;padding:40px 0;">Ошибка: ${escapeHtml(e.message)}</div>`;
+    }
+}
+
 document.addEventListener('DOMContentLoaded', beautifyModals);
 
 // ==========================================

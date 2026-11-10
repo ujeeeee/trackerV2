@@ -104,4 +104,33 @@ router.get('/main', authMiddleware, async (req, res) => {
     });
 });
 
+// ---------- СТАТИСТИКА ДЛЯ COLLECTIONS ----------
+router.get('/collections/stats', authMiddleware, async (req, res) => {
+    try {
+        const [
+            { count: placesTotal },
+            { count: placesVisited },
+            { count: filmTotal },
+            { count: filmWatched },
+            { count: teaTotal },
+            { count: teaShops }
+        ] = await Promise.all([
+            supabase.from('places_items').select('*', { count: 'exact', head: true }).eq('tg_id', req.tg_id),
+            supabase.from('places_items').select('*', { count: 'exact', head: true }).eq('tg_id', req.tg_id).eq('status', 'visited'),
+            supabase.from('film_movies').select('*', { count: 'exact', head: true }).eq('tg_id', req.tg_id),
+            supabase.from('film_movies').select('*', { count: 'exact', head: true }).eq('tg_id', req.tg_id).eq('status', 'watched'),
+            supabase.from('tea_items').select('*', { count: 'exact', head: true }).eq('tg_id', req.tg_id),
+            supabase.from('tea_shops').select('*', { count: 'exact', head: true }).eq('tg_id', req.tg_id)
+        ]);
+
+        res.json({
+            places: { total: placesTotal || 0, visited: placesVisited || 0 },
+            film: { total: filmTotal || 0, watched: filmWatched || 0 },
+            tea: { total: teaTotal || 0, shops: teaShops || 0 }
+        });
+    } catch (e) {
+        res.status(500).json({ error: e.message });
+    }
+});
+
 module.exports = router;

@@ -5,7 +5,7 @@ let tgUser = { id: 0, name: 'Друг' };
 let initData = '';
 let currentUser = null;
 let tg = null;
-const TOTAL_MAIN_SCREENS = 7;
+const TOTAL_MAIN_SCREENS = 5;
 let currentScreenIndex = 0;
 
 // ===== Collapse state =====
@@ -182,3 +182,12 @@ function haptic(type = 'light') {
     try { if (tg?.HapticFeedback) tg.HapticFeedback.impactOccurred(type); } catch (e) {}
 }
 document.addEventListener('click', e => { if (e.target.closest('button')) haptic('light'); });
+
+function plural(n, one, few, many) {
+    n = Math.abs(n) % 100;
+    const n1 = n % 10;
+    if (n > 10 && n < 20) return many;
+    if (n1 > 1 && n1 < 5) return few;
+    if (n1 === 1) return one;
+    return many;
+}

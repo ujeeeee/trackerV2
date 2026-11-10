@@ -5,7 +5,7 @@ function goToScreen(index) {
     if (index < 0 || index >= TOTAL_MAIN_SCREENS) return;
     currentScreenIndex = index;
 
-    const names = ['Main', 'Goals', 'Cash', 'Gym', 'Places', 'Film', 'Tea'];
+    const names = ['Main', 'Goals', 'Cash', 'Gym', 'Collections'];
     const screenName = names[index];
 
     document.querySelectorAll('.screen').forEach(s => {
@@ -26,12 +26,30 @@ function goToScreen(index) {
     window.scrollTo(0, 0);
 
     if (index === 0) loadMain();
-    if (index === 1) loadAreas(); // В Goals теперь только цели!
+    if (index === 1) loadAreas();
     if (index === 2) { loadBudget(); loadWishlist(); loadPiggy(); }
     if (index === 3) { loadPrograms(); loadMetrics(); }
-    if (index === 4) loadPlaces();
-    if (index === 5) loadFilm();
-    if (index === 6) loadTea();
+    if (index === 4) loadCollections();
+}
+
+// Открыть конкретную подборку (Places / Film / Tea)
+function openCollection(name) {
+    const map = { places: 'Places', film: 'Film', tea: 'Tea' };
+    const screenName = map[name];
+    if (!screenName) return;
+
+    document.querySelectorAll('.screen').forEach(s => {
+        s.classList.toggle('active', s.dataset.screenName === screenName);
+    });
+    // Подсвечиваем "Collections" в нижнем меню
+    document.querySelectorAll('.nav-btn').forEach(b => {
+        b.classList.toggle('active', parseInt(b.dataset.index) === 4);
+    });
+    window.scrollTo(0, 0);
+
+    if (name === 'places') loadPlaces();
+    if (name === 'film') loadFilm();
+    if (name === 'tea') loadTea();
 }
 
 function switchSubTab(parent, tab, btn) {
@@ -46,7 +64,13 @@ function switchSubTab(parent, tab, btn) {
 // ==========================================
 // ===== SETTINGS =====
 // ==========================================
+let previousScreenName = 'Main';
+
 function openSettings() {
+    const active = document.querySelector('.screen.active');
+    if (active && active.dataset.screenName !== 'Settings') {
+        previousScreenName = active.dataset.screenName;
+    }
     document.body.classList.add('settings-open');
     updateSettingsUI();
     document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
@@ -54,9 +78,20 @@ function openSettings() {
     document.querySelectorAll('.nav-btn').forEach(b => b.classList.remove('active'));
     window.scrollTo(0, 0);
 }
-function closeSettings() { 
+
+function closeSettings() {
     document.body.classList.remove('settings-open');
-    goToScreen(currentScreenIndex); 
+    if (['Places', 'Film', 'Tea'].includes(previousScreenName)) {
+        document.querySelectorAll('.screen').forEach(s => {
+            s.classList.toggle('active', s.dataset.screenName === previousScreenName);
+        });
+        document.querySelectorAll('.nav-btn').forEach(b => {
+            b.classList.toggle('active', parseInt(b.dataset.index) === 4);
+        });
+        window.scrollTo(0, 0);
+    } else {
+        goToScreen(currentScreenIndex);
+    }
 }
 
 function updateSettingsUI() {
