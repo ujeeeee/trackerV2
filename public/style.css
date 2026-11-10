@@ -152,30 +152,40 @@ body {
 .bottom-nav {
     position: fixed;
     bottom: calc(env(safe-area-inset-bottom, 0px) + 17px);
-    left: 10px; right: 10px;
+    left: 10px; 
+    right: 10px;
     background: var(--glass-strong);
     backdrop-filter: blur(40px) saturate(200%);
     -webkit-backdrop-filter: blur(40px) saturate(200%);
     border: 1px solid var(--glass-border);
     border-radius: 30px;
-    display: flex; gap: 2px; padding: 6px;
-    z-index: 90; max-width: 460px; margin: 0 auto;
-    box-shadow:
-        0 12px 40px rgba(0,0,0,0.4),
-        0 2px 8px rgba(0,0,0,0.15),
-        inset 0 1px 0 var(--glass-highlight);
-    overflow-x: auto; overflow-y: hidden;
-    scrollbar-width: none; -ms-overflow-style: none;
-    scroll-behavior: smooth; -webkit-overflow-scrolling: touch;
+    display: flex; 
+    justify-content: space-between; /* Равномерно распределяет кнопки */
+    padding: 6px;
+    z-index: 90; 
+    max-width: 460px; 
+    margin: 0 auto;
+    box-shadow: 0 12px 40px rgba(0,0,0,0.4), 0 2px 8px rgba(0,0,0,0.15), inset 0 1px 0 var(--glass-highlight);
+    /* Убрали overflow-x: auto, так как скролл больше не нужен */
 }
 .bottom-nav::-webkit-scrollbar { display: none; }
 .nav-btn {
-    background: none; border: none;
+    background: none; 
+    border: none;
     color: var(--text-tertiary);
-    display: flex; flex-direction: column; align-items: center; justify-content: center;
-    gap: 2px; padding: 6px 10px; cursor: pointer;
-    border-radius: 22px; transition: 0.2s; flex: 0 0 auto;
-    min-width: 62px; font-family: inherit; position: relative;
+    display: flex; 
+    flex-direction: column; 
+    align-items: center; 
+    justify-content: center;
+    gap: 2px; 
+    padding: 6px 4px; 
+    cursor: pointer;
+    border-radius: 22px; 
+    transition: 0.2s; 
+    flex: 1; /* Растягивает кнопки на равную ширину */
+    font-family: inherit; 
+    position: relative;
+    min-width: 0; /* Чтобы кнопки могли сжиматься на узких экранах */
 }
 .nav-btn.active { color: var(--accent); }
 .nav-btn.active::before {

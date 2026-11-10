@@ -231,7 +231,7 @@ async function loadCollections() {
     
     try {
         // Запрашиваем только цифры!
-        const stats = await api('/api/main/collections/stats');
+        const stats = await api('/api/collections/stats');
         
         container.innerHTML = `
             <div class="collection-card" onclick="openCollection('places')">
