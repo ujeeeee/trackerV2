@@ -34,14 +34,7 @@ async function loadMain() {
     } catch (e) { console.error(e); }
 }
 
-function switchMainView(view) {
-    mainView = view;
-    document.getElementById('btnViewList').classList.toggle('active', view === 'list');
-    document.getElementById('btnViewCal').classList.toggle('active', view === 'calendar');
-    document.getElementById('main-list-view').style.display = view === 'list' ? 'block' : 'none';
-    document.getElementById('main-calendar-view').style.display = view === 'calendar' ? 'block' : 'none';
-    loadMain();
-}
+
 
 function renderMainGreeting() {
     const h = new Date().getHours();
@@ -255,40 +248,64 @@ function toggleMoneyBlur(el) { el.classList.toggle('money-blur'); }
 // ==== ВИД 2: КАЛЕНДАРЬ / ТАЙМЛАЙН ====
 // ==========================================
 
+let calendarMode = 'week'; // 'week' | 'month'
+let calendarMonthDate = new Date(); // Текущий месяц для сетки
+
+function switchMainView(view) {
+    mainView = view;
+    document.getElementById('btnViewList').classList.toggle('active', view === 'list');
+    document.getElementById('btnViewCal').classList.toggle('active', view === 'calendar');
+    document.getElementById('main-list-view').style.display = view === 'list' ? 'block' : 'none';
+    document.getElementById('main-calendar-view').style.display = view === 'calendar' ? 'flex' : 'none';
+    
+    // Прячем календарь при переключении на список
+    if (view === 'list') {
+        document.getElementById('calendarHeader').style.display = 'none';
+    } else {
+        document.getElementById('calendarHeader').style.display = 'block';
+    }
+    
+    loadMain();
+}
+
 function renderCalendarView(data) {
     renderCalendarStrip();
+    
     const cont = document.getElementById('timelineContainer');
+    const sticky = document.getElementById('timelineAlldaySticky');
     
     const todos = (data.todos || []).filter(t => t.date === mainSelectedDate);
+    const reminders = (data.reminders || []);
     const habits = data.habits || [];
-    const reminders = data.reminders || [];
     
+    // 1. Рендерим закрепленные задачи (без времени)
+    let stickyHtml = '';
+    const alldayTodos = todos.filter(t => !t.time_start);
+    
+    if (alldayTodos.length || habits.length || reminders.length) {
+        alldayTodos.forEach(t => {
+            stickyHtml += `<div class="allday-item todo" onclick="openAddItemModal(${t.id}, 'todo')">📝 ${escapeHtml(t.name)}</div>`;
+        });
+        reminders.forEach(r => {
+            // Показываем напоминания на сегодня или без даты
+            if (!r.date || r.date === mainSelectedDate) {
+                stickyHtml += `<div class="allday-item reminder" onclick="openAddItemModal(${r.id}, 'reminder')">🔔 ${escapeHtml(r.name)}</div>`;
+            }
+        });
+        if (habits.length) {
+            stickyHtml += `<div class="allday-item habit" onclick="openHabitDashboard()">🔥 ${habits.length} привычек на сегодня</div>`;
+        }
+    } else {
+        stickyHtml = `<div style="font-size:12px; color:var(--text-tertiary); text-align:center; padding:4px;">Нет задач на весь день</div>`;
+    }
+    sticky.innerHTML = stickyHtml;
+    
+    // 2. Рендерим таймлайн по часам
     const timedItems = [];
     todos.forEach(t => { if(t.time_start) timedItems.push({...t, _type:'todo'}); });
-    reminders.forEach(t => { if(t.time_start) timedItems.push({...t, _type:'reminder'}); });
+    reminders.forEach(t => { if(t.time_start && t.date === mainSelectedDate) timedItems.push({...t, _type:'reminder'}); });
     
     let html = '';
-    
-    const allDayTodos = todos.filter(t => !t.time_start);
-    if (allDayTodos.length > 0 || habits.length > 0) {
-        let allDayHtml = `<div class="widget" style="margin-bottom:20px;">
-            <div class="widget-title"><span>На весь день</span></div>`;
-        
-        allDayTodos.forEach(t => {
-            allDayHtml += `<div class="main-todo-item" style="padding:4px 0;" onclick="openAddItemModal(${t.id}, 'todo')">
-                <span class="main-todo-name">${escapeHtml(t.name)}</span>
-            </div>`;
-        });
-        
-        if (habits.length) {
-            allDayHtml += `<div class="main-todo-item" style="padding:4px 0; color:var(--success);" onclick="openHabitDashboard()">
-                <span class="main-todo-name">${habits.length} привычек на сегодня</span>
-            </div>`;
-        }
-        allDayHtml += `</div>`;
-        html = allDayHtml;
-    }
-
     for (let hour = 0; hour < 24; hour++) {
         const timeStr = `${String(hour).padStart(2,'0')}:00`;
         html += `<div class="timeline-hour" data-hour="${hour}">
@@ -307,9 +324,89 @@ function renderCalendarView(data) {
         });
         html += `</div>`;
     }
-
     cont.innerHTML = html;
-    scrollToTimelineCurrentTime();
+    
+    // Сброс скролла на текущее время, если это сегодня
+    setTimeout(() => {
+        const wrap = document.getElementById('timelineWrapper');
+        const now = new Date();
+        if (mainSelectedDate === localDate(now)) {
+            const h = now.getHours();
+            const hourEl = wrap.querySelector(`.timeline-hour[data-hour="${h}"]`);
+            if (hourEl) wrap.scrollTop = hourEl.offsetTop - 150;
+        } else {
+            wrap.scrollTop = 8 * 60;
+        }
+    }, 50);
+}
+
+// ==========================================
+// ===== БЕСКОНЕЧНЫЙ СКРОЛЛ =====
+// ==========================================
+let isScrolling = false;
+document.addEventListener('DOMContentLoaded', () => {
+    const wrap = document.getElementById('timelineWrapper');
+    if (!wrap) return;
+    
+    wrap.addEventListener('scroll', () => {
+        if (isScrolling) return;
+        
+        const scrollTop = wrap.scrollTop;
+        const scrollHeight = wrap.scrollHeight;
+        const clientHeight = wrap.clientHeight;
+        
+        // Скролл вниз (к следующим дням)
+        if (scrollTop + clientHeight >= scrollHeight - 10) {
+            isScrolling = true;
+            const d = new Date(mainSelectedDate + 'T12:00:00');
+            d.setDate(d.getDate() + 1);
+            mainSelectedDate = localDate(d);
+            loadMain();
+            setTimeout(() => {
+                wrap.scrollTop = 10; // Скидываем наверх нового дня
+                isScrolling = false;
+            }, 300);
+        }
+        
+        // Скролл вверх (к предыдущим дням)
+        if (scrollTop <= 0) {
+            isScrolling = true;
+            const d = new Date(mainSelectedDate + 'T12:00:00');
+            d.setDate(d.getDate() - 1);
+            mainSelectedDate = localDate(d);
+            loadMain();
+            setTimeout(() => {
+                wrap.scrollTop = wrap.scrollHeight - clientHeight - 10; // Скидываем вниз
+                isScrolling = false;
+            }, 300);
+        }
+    });
+});
+
+// ==========================================
+// ===== КАЛЕНДАРЬ (НЕДЕЛЯ / МЕСЯЦ) =====
+// ==========================================
+function toggleCalendarExpand() {
+    const btn = document.getElementById('calendarExpandBtn');
+    const weekEl = document.getElementById('calendarWeekStrip');
+    const monthEl = document.getElementById('calendarMonthGrid');
+    const titleEl = document.getElementById('calendarMonthTitle');
+    
+    if (calendarMode === 'week') {
+        calendarMode = 'month';
+        weekEl.style.display = 'none';
+        monthEl.style.display = 'grid';
+        titleEl.style.display = 'block';
+        btn.classList.add('active');
+        renderMonthGrid();
+    } else {
+        calendarMode = 'week';
+        weekEl.style.display = 'flex';
+        monthEl.style.display = 'none';
+        titleEl.style.display = 'none';
+        btn.classList.remove('active');
+        renderCalendarStrip();
+    }
 }
 
 function renderCalendarStrip() {
@@ -327,10 +424,62 @@ function renderCalendarStrip() {
         html += `<div class="cal-day ${isActive ? 'active' : ''}" onclick="selectCalendarDate('${ds}')">
             <span class="cal-day-name">${daysNames[d.getDay()]}</span>
             <span class="cal-day-num">${d.getDate()}</span>
-            <div class="cal-day-dot" style="opacity:0;"></div>
         </div>`;
     }
     strip.innerHTML = html;
+}
+
+function renderMonthGrid() {
+    const grid = document.getElementById('calendarMonthGrid');
+    const title = document.getElementById('calendarMonthTitle');
+    
+    const monthsRu = ['Январь','Февраль','Март','Апрель','Май','Июнь','Июль','Август','Сентябрь','Октябрь','Ноябрь','Декабрь'];
+    const year = calendarMonthDate.getFullYear();
+    const month = calendarMonthDate.getMonth();
+    
+    title.innerHTML = `
+        <button class="month-nav-btn" onclick="event.stopPropagation(); changeMonth(-1)">‹</button>
+        <span>${monthsRu[month]} ${year}</span>
+        <button class="month-nav-btn" onclick="event.stopPropagation(); changeMonth(1)">›</button>
+    `;
+    
+    const firstDay = new Date(year, month, 1);
+    const lastDay = new Date(year, month + 1, 0);
+    const startDayOfWeek = firstDay.getDay() === 0 ? 7 : firstDay.getDay(); // Пн = 1
+    
+    let html = '';
+    // Пустые ячейки до начала месяца
+    for (let i = 1; i < startDayOfWeek; i++) {
+        html += `<div class="month-day other-month"></div>`;
+    }
+    
+    const todayStr = localDate(new Date());
+    
+    for (let i = 1; i <= lastDay.getDate(); i++) {
+        const d = new Date(year, month, i);
+        const ds = localDate(d);
+        const isActive = ds === mainSelectedDate;
+        const isToday = ds === todayStr;
+        html += `<div class="month-day ${isActive ? 'active' : ''} ${isToday && !isActive ? 'today' : ''}" onclick="selectCalendarDate('${ds}')">${i}</div>`;
+    }
+    
+    grid.innerHTML = html;
+}
+
+function changeMonth(delta) {
+    calendarMonthDate.setMonth(calendarMonthDate.getMonth() + delta);
+    renderMonthGrid();
+}
+
+function selectCalendarDate(ds) {
+    mainSelectedDate = ds;
+    const d = new Date(ds + 'T12:00:00');
+    calendarMonthDate = new Date(d.getFullYear(), d.getMonth(), 1); // Обновляем месяц для сетки
+    
+    if (calendarMode === 'month') renderMonthGrid();
+    else renderCalendarStrip();
+    
+    loadMain();
 }
 
 function selectCalendarDate(ds) { mainSelectedDate = ds; loadMain(); }

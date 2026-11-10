@@ -41,13 +41,26 @@
                 </div>
 
                 <!-- ВИД 2: КАЛЕНДАРЬ / ТАЙМЛАЙН -->
-                <div class="screen-content" id="main-calendar-view" style="display:none; padding:0;">
+                <div class="screen-content" id="main-calendar-view" style="display:none; padding:0; flex-direction: column; height: calc(100vh - 160px);">
+                    
+                    <!-- Таймлайн (занимает всё свободное место) -->
+                    <div class="timeline-wrapper" id="timelineWrapper" style="flex: 1; position: relative;">
+                        <!-- Закрепленные задачи на весь день -->
+                        <div class="timeline-allday-sticky" id="timelineAlldaySticky"></div>
+                        
+                        <div class="timeline-container" id="timelineContainer"></div>
+                        <!-- Невидимый блок для скролла вверх -->
+                        <div id="dummyPrev" style="height: 1px;"></div>
+                    </div>
+
+                    <!-- Календарь (внизу) -->
                     <div class="calendar-header" id="calendarHeader">
+                        <div class="calendar-top-controls">
+                            <div class="calendar-month-title" id="calendarMonthTitle" style="display:none;"></div>
+                            <button class="calendar-expand-btn" id="calendarExpandBtn" onclick="toggleCalendarExpand()">⌃</button>
+                        </div>
                         <div class="calendar-week-strip" id="calendarWeekStrip"></div>
                         <div class="calendar-month-grid" id="calendarMonthGrid" style="display:none;"></div>
-                    </div>
-                    <div class="timeline-wrapper" id="timelineWrapper">
-                        <div class="timeline-container" id="timelineContainer"></div>
                     </div>
                 </div>
             </div>
