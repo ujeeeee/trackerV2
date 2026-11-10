@@ -5,6 +5,8 @@ try {
     tg = window.Telegram.WebApp;
     tg.ready();
     tg.expand();
+
+    if (tg.disableVerticalSwipes) tg.disableVerticalSwipes();
     if (tg.initDataUnsafe?.user) {
         tgUser.id = tg.initDataUnsafe.user.id;
         tgUser.name = tg.initDataUnsafe.user.first_name || tg.initDataUnsafe.user.username || 'Друг';
