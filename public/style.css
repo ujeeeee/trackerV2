@@ -1787,28 +1787,7 @@ textarea.modal-input {
 .tree-svg:active { cursor: grabbing; }
 
 /* Breadcrumb */
-.tree-breadcrumb {
-    position: absolute;
-    top: 47px;
-    left: 10px;
-    right: 10px;
-    display: flex;
-    flex-wrap: nowrap;
-    gap: 2px;
-    overflow-x: auto;
-    scrollbar-width: none;
-    z-index: 5;
-    pointer-events: auto;
-    padding: 4px 8px;
-    background: var(--glass-strong);
-    backdrop-filter: blur(20px) saturate(180%);
-    -webkit-backdrop-filter: blur(20px) saturate(180%);
-    border: 1px solid var(--glass-border);
-    border-radius: 12px;
-    box-shadow: 0 4px 12px rgba(0,0,0,0.2), inset 0 1px 0 var(--glass-highlight);
-}
-.tree-breadcrumb::-webkit-scrollbar { display: none; }
-.tree-breadcrumb:empty { display: none; }
+
 
 .tree-crumb {
     font-size: 11px;
@@ -1833,20 +1812,7 @@ textarea.modal-input {
 }
 
 /* Controls */
-/* Новый контейнер для нижней панели */
-.tree-bottom-bar {
-    position: fixed;
-    bottom: calc(env(safe-area-inset-bottom, 0px) + 82px);
-    left: 10px;
-    right: 10px;
-    max-width: 460px;
-    margin: 0 auto;
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    gap: 6px;
-    z-index: 60;
-}
+
 
 /* ==========================================
    GOALS TREE (SVG canvas)
@@ -1945,19 +1911,202 @@ textarea.modal-input {
 }
 
 /* Группа контекстных кнопок (Цель, Редактировать, Удалить) */
-.tree-actions {
-    display: none;
-    align-items: center;
-    gap: 4px;
-}
-.tree-actions.visible { display: flex; }
+
 
 /* Группа кнопок навигации */
+/* ==========================================
+   ПАНЕЛЬ ПУТИ (Breadcrumb) — всегда видна
+   ========================================== */
+.tree-breadcrumb {
+    position: absolute;
+    top: 47px;
+    left: 10px;
+    right: 10px;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    padding: 5px 8px;
+    background: var(--glass-strong);
+    backdrop-filter: blur(20px) saturate(180%);
+    -webkit-backdrop-filter: blur(20px) saturate(180%);
+    border: 1px solid var(--glass-border);
+    border-radius: 12px;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.2), inset 0 1px 0 var(--glass-highlight);
+    z-index: 5;
+    min-height: 38px;
+}
+
+.tree-breadcrumb-path {
+    display: flex;
+    align-items: center;
+    gap: 2px;
+    overflow-x: auto;
+    scrollbar-width: none;
+    -ms-overflow-style: none;
+    flex: 1;
+    min-width: 0;
+}
+.tree-breadcrumb-path::-webkit-scrollbar { display: none; }
+
+.tree-crumb {
+    font-size: 11px;
+    font-weight: 600;
+    color: var(--text-secondary);
+    white-space: nowrap;
+    padding: 4px 6px;
+    border-radius: 6px;
+    cursor: pointer;
+    font-family: inherit;
+    border: none;
+    background: none;
+    transition: 0.15s;
+}
+.tree-crumb:active { background: var(--card-hover); }
+.tree-crumb.last { color: var(--accent); }
+.tree-crumb-sep {
+    color: var(--text-tertiary);
+    font-size: 11px;
+    padding: 4px 0;
+    flex-shrink: 0;
+}
+
+/* Кнопка экспорта справа в панели пути */
+.tree-breadcrumb-export {
+    width: 30px;
+    height: 30px;
+    flex-shrink: 0;
+    border-radius: 8px;
+    background: var(--accent-soft);
+    color: var(--accent);
+    border: 1px solid rgba(var(--accent-rgb), 0.3);
+    font-size: 15px;
+    font-weight: 600;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-family: inherit;
+    transition: 0.15s;
+    padding: 0;
+    line-height: 1;
+}
+.tree-breadcrumb-export:active { transform: scale(0.9); opacity: 0.8; }
+
+/* ==========================================
+   ОСНОВНАЯ НИЖНЯЯ ПАНЕЛЬ
+   ========================================== */
+.tree-bottom-bar {
+    position: fixed;
+    bottom: calc(env(safe-area-inset-bottom, 0px) + 82px);
+    left: 10px;
+    right: 10px;
+    max-width: 460px;
+    margin: 0 auto;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    z-index: 60;
+    padding: 6px 8px;
+    background: var(--glass-strong);
+    backdrop-filter: blur(30px) saturate(180%);
+    -webkit-backdrop-filter: blur(30px) saturate(180%);
+    border: 1px solid var(--glass-border);
+    border-radius: 20px;
+    box-shadow: 0 8px 24px rgba(0,0,0,0.3), inset 0 1px 0 var(--glass-highlight);
+}
+
 .tree-controls {
     display: flex;
     align-items: center;
     gap: 4px;
     margin-left: auto;
+}
+
+/* ==========================================
+   ПЛАВАЮЩАЯ ПАНЕЛЬ КОНТЕКСТНЫХ КНОПОК
+   (появляется НАД нижней панелью, не сдвигает её)
+   ========================================== */
+.tree-actions {
+    position: fixed;
+    bottom: calc(env(safe-area-inset-bottom, 0px) + 130px);
+    left: 50%;
+    transform: translateX(-50%);
+    display: none;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+    padding: 6px;
+    background: var(--glass-strong);
+    backdrop-filter: blur(30px) saturate(180%);
+    -webkit-backdrop-filter: blur(30px) saturate(180%);
+    border: 1px solid var(--glass-border);
+    border-radius: 16px;
+    box-shadow: 0 8px 24px rgba(0,0,0,0.3), inset 0 1px 0 var(--glass-highlight);
+    z-index: 59;
+    white-space: nowrap;
+}
+.tree-actions.visible { display: flex; }
+
+/* Общие кнопки */
+.tree-ctrl-btn {
+    width: 38px;
+    height: 38px;
+    border-radius: 12px;
+    background: var(--bg-secondary);
+    border: 1px solid var(--glass-border);
+    color: var(--text);
+    font-size: 16px;
+    font-weight: 600;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: 0.15s;
+    font-family: inherit;
+    padding: 0;
+    flex-shrink: 0;
+    line-height: 1;
+}
+.tree-ctrl-btn:active { transform: scale(0.92); background: var(--card-hover); }
+
+.tree-ctrl-btn.pill {
+    width: auto;
+    min-width: 86px;
+    padding: 0 12px;
+    font-size: 12px;
+    font-weight: 700;
+    background: var(--accent);
+    color: white;
+    border-color: var(--accent);
+    box-shadow: 0 2px 8px rgba(var(--accent-rgb), 0.35);
+}
+.tree-ctrl-btn.pill:active { transform: scale(0.96); opacity: 0.85; background: var(--accent); }
+
+.tree-action-btn {
+    height: 38px;
+    min-width: 38px;
+    padding: 0 12px;
+    border-radius: 12px;
+    background: var(--accent-soft);
+    color: var(--accent);
+    border: 1px solid rgba(var(--accent-rgb), 0.3);
+    font-size: 12px;
+    font-weight: 700;
+    cursor: pointer;
+    font-family: inherit;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    white-space: nowrap;
+    transition: 0.15s;
+    flex-shrink: 0;
+    line-height: 1;
+}
+.tree-action-btn:active { transform: scale(0.95); opacity: 0.8; }
+.tree-action-btn.tree-action-danger {
+    background: rgba(255, 69, 58, 0.15);
+    color: var(--danger);
+    border-color: rgba(255, 69, 58, 0.3);
 }
 
 /* Универсальная кнопка-иконка */

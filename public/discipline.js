@@ -276,11 +276,40 @@ function updateActionsBar() {
     btnDel.style.display = (n.type !== 'root') ? 'flex' : 'none';
 }
 function updateBreadcrumb() {
-    const el = document.getElementById('treeBreadcrumb'); if (!el) return;
-    if (!selectedNodeId) { el.innerHTML = ''; return; }
-    const path = []; let n = treeNodesById[selectedNodeId];
-    while (n) { path.unshift(n); if (n.type === 'root') break; if (n.type === 'area' && n.parentAreaId) n = treeNodesById['a:' + n.parentAreaId]; else if (n.type === 'goal' && n.areaId) n = treeNodesById['a:' + n.areaId]; else n = treeNodesById['root']; }
-    el.innerHTML = path.map((n, i) => `<button class="tree-crumb ${i === path.length - 1 ? 'last' : ''}" onclick="focusNode('${n.id}', true); selectedNodeId = '${n.id}'; renderTree();">${escapeSvg(n.name)}</button>` + (i === path.length - 1 ? '' : `<span class="tree-crumb-sep">›</span>`)).join('');
+    const el = document.getElementById('treeBreadcrumb'); 
+    if (!el || !treeRoot) return;
+    
+    let path = [];
+    if (!selectedNodeId || !treeNodesById[selectedNodeId]) {
+        path = [treeRoot]; // Всегда показываем "МОИ ЦЕЛИ"
+    } else {
+        let n = treeNodesById[selectedNodeId];
+        while (n) { 
+            path.unshift(n); 
+            if (n.type === 'root') break; 
+            if (n.type === 'area' && n.parentAreaId) n = treeNodesById['a:' + n.parentAreaId]; 
+            else if (n.type === 'goal' && n.areaId) n = treeNodesById['a:' + n.areaId]; 
+            else n = treeRoot; 
+        }
+    }
+    
+    const crumbsHtml = path.map((n, i) => {
+        const isLast = i === path.length - 1;
+        return `<button class="tree-crumb ${isLast ? 'last' : ''}" onclick="selectCrumb('${n.id}')">${escapeSvg(n.name)}</button>` + 
+               (isLast ? '' : `<span class="tree-crumb-sep">›</span>`);
+    }).join('');
+    
+    el.innerHTML = `
+        <div class="tree-breadcrumb-path">${crumbsHtml}</div>
+        <button class="tree-breadcrumb-export" onclick="exportTreeImage()" title="Экспорт PNG">⬇</button>
+    `;
+}
+
+// Вспомогательная функция для клика по крошке
+function selectCrumb(nodeId) {
+    selectedNodeId = nodeId;
+    renderTree();
+    focusNode(nodeId, true);
 }
 
 async function toggleGoalDone(goalId, isDone) { try { await api(`/api/disc/goals/${goalId}`, 'PATCH', { status: isDone ? 'plan' : 'done' }); await loadAreas(); } catch (e) { alert('Ошибка: ' + e.message); } }
