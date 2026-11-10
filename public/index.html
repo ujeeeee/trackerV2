@@ -62,12 +62,16 @@
                 </div>
                 <div class="screen-content">
                     <div id="discipline-goals" class="subtab active" style="display:block; position:relative; height: 100%;">
-                        <div class="tree-wrap" id="treeWrap">
-                            <div class="tree-breadcrumb" id="treeBreadcrumb"></div>
-                            <svg class="tree-svg" id="treeSvg" xmlns="http://www.w3.org/2000/svg"></svg>
+                        <div class="tree-bottom-bar">
+                            <div class="tree-actions" id="treeActions">
+                                <button class="tree-action-btn" id="treeActionAddGoal" onclick="treeAddGoal()">+ Цель</button>
+                                <button class="tree-action-btn" id="treeActionEdit" onclick="treeEdit()">✎</button>
+                                <button class="tree-action-btn tree-action-danger" id="treeActionDelete" onclick="treeDelete()">🗑</button>
+                            </div>
                             <div class="tree-controls">
+                                <button class="tree-ctrl-btn pill" id="treeActionAddBranch" onclick="treeAddBranch()">+ Ветка</button>
                                 <button class="tree-ctrl-btn" onclick="treeBack()" title="Назад">←</button>
-                                <button class="tree-ctrl-btn" onclick="treeFit()" title="Показать всё">⌗</button>
+                                <button class="tree-ctrl-btn" onclick="fitTree()" title="Показать всё">⌗</button>
                                 <button class="tree-ctrl-btn" onclick="treeZoomIn()">+</button>
                                 <button class="tree-ctrl-btn" onclick="treeZoomOut()">−</button>
                                 <button class="tree-ctrl-btn" onclick="exportTreeImage()" title="Экспорт PNG">⬇</button>

@@ -255,11 +255,22 @@ function findNodeEl(el) { const svg = document.getElementById('treeSvg'); while 
 function updateActionsBar() {
     const bar = document.getElementById('treeActions'); if (!bar) return;
     const btnBranch = document.getElementById('treeActionAddBranch'), btnGoal = document.getElementById('treeActionAddGoal'), btnEdit = document.getElementById('treeActionEdit'), btnDel = document.getElementById('treeActionDelete');
-    if (!selectedNodeId) { bar.classList.add('visible'); btnBranch.textContent = '+ Дерево'; btnBranch.style.display = 'block'; btnGoal.style.display = 'none'; btnEdit.style.display = 'none'; btnDel.style.display = 'none'; return; }
-    const n = treeNodesById[selectedNodeId]; if (!n) { bar.classList.remove('visible'); return; }
-    bar.classList.add('visible'); btnBranch.textContent = '+ Ветка';
-    btnBranch.style.display = (n.type === 'root' || n.type === 'area') ? 'block' : 'none'; btnGoal.style.display = (n.type === 'area') ? 'block' : 'none';
-    btnEdit.style.display = (n.type !== 'root') ? 'block' : 'none'; btnDel.style.display = (n.type !== 'root') ? 'block' : 'none';
+    
+    if (!selectedNodeId) { 
+        bar.classList.remove('visible'); // Скрываем доп. панель
+        btnBranch.textContent = '+ Дерево'; 
+        btnBranch.style.display = 'block'; 
+        return; 
+    }
+    const n = treeNodesById[selectedNodeId]; 
+    if (!n) { bar.classList.remove('visible'); return; }
+    
+    bar.classList.add('visible'); 
+    btnBranch.textContent = '+ Ветка';
+    btnBranch.style.display = (n.type === 'root' || n.type === 'area') ? 'block' : 'none'; 
+    btnGoal.style.display = (n.type === 'area') ? 'block' : 'none';
+    btnEdit.style.display = (n.type !== 'root') ? 'block' : 'none'; 
+    btnDel.style.display = (n.type !== 'root') ? 'block' : 'none';
 }
 function updateBreadcrumb() {
     const el = document.getElementById('treeBreadcrumb'); if (!el) return;
@@ -334,3 +345,70 @@ window.switchSubTab = function(parent, tab, btn) {
         }, 80);
     }
 };
+
+function exportTreeImage() {
+    const svg = document.getElementById('treeSvg');
+    if (!svg) return;
+    
+    // Клонируем дерево
+    const clone = svg.cloneNode(true);
+    clone.setAttribute('xmlns', 'http://www.w3.org/2000/svg');
+    
+    // Считаем размеры
+    const bbox = computeTreeBBox();
+    const padding = 20;
+    const width = bbox.w + padding * 2;
+    const height = bbox.h + padding * 2;
+    
+    clone.setAttribute('viewBox', `${bbox.x - padding} ${bbox.y - padding} ${width} ${height}`);
+    clone.setAttribute('width', width);
+    clone.setAttribute('height', height);
+    
+    // Вшиваем стили, чтобы картинка не была черной/пустой
+    const style = document.createElement('style');
+    style.textContent = `
+        .tn-rect { fill: #232321; stroke: #444; }
+        .tn-name { fill: #F3F0ED; font-family: sans-serif; font-size: 13px; font-weight: 600; }
+        .tn-sub { fill: #98989f; font-family: sans-serif; font-size: 10px; }
+        .tree-edge { stroke: #444; stroke-width: 1.5; fill: none; }
+        .tn-goal-name { fill: #F3F0ED; font-family: sans-serif; font-size: 11px; }
+        .tn-goal-row.done .tn-goal-name { fill: #98989f; text-decoration: line-through; }
+        .tn-goal-check { fill: transparent; stroke: #98989f; stroke-width: 1.4; }
+        .tn-goal-check.done { fill: #32d74b; stroke: #32d74b; }
+        .tn-goal-check-mark { fill: none; stroke: white; stroke-width: 1.8; display: none; }
+        .tn-goal-row.done .tn-goal-check-mark { display: block; }
+    `;
+    clone.prepend(style);
+
+    // Конвертируем SVG в картинку и скачиваем
+    const svgString = new XMLSerializer().serializeToString(clone);
+    const svgBlob = new Blob([svgString], { type: 'image/svg+xml;charset=utf-8' });
+    const URL = window.URL || window.webkitURL || window;
+    const blobURL = URL.createObjectURL(svgBlob);
+    
+    const image = new Image();
+    image.onload = () => {
+        const canvas = document.createElement('canvas');
+        canvas.width = width;
+        canvas.height = height;
+        const context = canvas.getContext('2d');
+        
+        // Темный фон
+        context.fillStyle = '#141413';
+        context.fillRect(0, 0, canvas.width, canvas.height);
+        
+        context.drawImage(image, 0, 0);
+        URL.revokeObjectURL(blobURL);
+        
+        const png = canvas.toDataURL('image/png');
+        
+        // Скачивание файла
+        const a = document.createElement('a');
+        a.href = png;
+        a.download = 'goals-tree.png';
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+    };
+    image.src = blobURL;
+}

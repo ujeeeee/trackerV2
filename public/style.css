@@ -1802,7 +1802,7 @@ textarea.modal-input {
 /* Breadcrumb */
 .tree-breadcrumb {
     position: absolute;
-    top: 27px;
+    top: 47px;
     left: 10px;
     right: 10px;
     display: flex;
@@ -1846,18 +1846,50 @@ textarea.modal-input {
 }
 
 /* Controls */
-.tree-controls {
+/* Новый контейнер для нижней панели */
+.tree-bottom-bar {
     position: fixed;
-    bottom: calc(env(safe-area-inset-bottom, 0px) + 136px);
+    bottom: calc(env(safe-area-inset-bottom, 0px) + 82px);
     left: 10px;
     right: 10px;
     max-width: 460px;
     margin: 0 auto;
     display: flex;
-    flex-direction: row;
-    justify-content: flex-end;
+    align-items: center;
+    justify-content: space-between;
     gap: 6px;
     z-index: 60;
+}
+
+/* Панель дополнительных действий (Цель, Редактировать) */
+.tree-actions {
+    display: none;
+    gap: 6px;
+    padding: 6px;
+    background: var(--glass-strong);
+    backdrop-filter: blur(30px) saturate(180%);
+    -webkit-backdrop-filter: blur(30px) saturate(180%);
+    border: 1px solid var(--glass-border);
+    border-radius: 16px;
+    box-shadow: 0 8px 24px rgba(0,0,0,0.3), inset 0 1px 0 var(--glass-highlight);
+}
+.tree-actions.visible { display: flex; }
+
+/* Панель маленьких кнопок */
+.tree-controls {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    margin-left: auto; /* Прижимает вправо, если tree-actions скрыта */
+}
+
+/* Стиль для кнопки + Ветка (чтобы была вытянутой) */
+.tree-ctrl-btn.pill {
+    width: auto;
+    padding: 0 12px;
+    font-size: 12px;
+    font-weight: 600;
+    border-radius: 16px;
 }
 .tree-ctrl-btn {
     width: 32px;
@@ -1886,24 +1918,6 @@ textarea.modal-input {
 
 /* Bottom action bar */
 /* Bottom action bar */
-.tree-actions {
-    position: fixed;
-    bottom: calc(env(safe-area-inset-bottom, 0px) + 82px);
-    left: 10px;
-    right: 10px;
-    max-width: 460px;
-    margin: 0 auto;
-    display: none;
-    gap: 6px;
-    padding: 6px;
-    background: var(--glass-strong);
-    backdrop-filter: blur(30px) saturate(180%);
-    -webkit-backdrop-filter: blur(30px) saturate(180%);
-    border: 1px solid var(--glass-border);
-    border-radius: 16px;
-    box-shadow: 0 8px 24px rgba(0,0,0,0.3), inset 0 1px 0 var(--glass-highlight);
-    z-index: 60;
-}
 .tree-actions.visible { display: flex; }
 .tree-action-btn {
     flex: 1;
